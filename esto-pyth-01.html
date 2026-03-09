@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTOQUE PRO - Controle Completo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-72 bg-zinc-900 p-6">
+            <h1 class="text-3xl font-bold text-emerald-500 mb-10">ESTOQUE PRO</h1>
+            <nav class="space-y-2">
+                <button onclick="showScreen('dashboard')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Dashboard</button>
+                <button onclick="showScreen('cadastrar')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Cadastrar Produto</button>
+                <button onclick="showScreen('listar')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Listar Produtos</button>
+                <button onclick="showScreen('compra')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Compra (Entrada)</button>
+                <button onclick="showScreen('venda')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Venda (Saída)</button>
+                <button onclick="showScreen('ajuste')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Ajuste de Estoque</button>
+                <button onclick="showScreen('baixo')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Abaixo do Mínimo</button>
+                <button onclick="showScreen('movimentos')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Movimentos</button>
+                <button onclick="exportarCSV()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800">Exportar CSV</button>
+            </nav>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="flex-1 p-8 overflow-auto">
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="screen active">
+                <h2 class="text-3xl font-bold">Dashboard</h2>
+                <div class="grid grid-cols-3 gap-6 mt-8">
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p>Total de Produtos</p>
+                        <p id="totalProdutos" class="text-6xl font-bold text-emerald-400">0</p>
+                    </div>
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p>Baixo Estoque</p>
+                        <p id="baixoEstoque" class="text-6xl font-bold text-red-400">0</p>
+                    </div>
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p>Valor Total em Estoque</p>
+                        <p id="valorTotal" class="text-6xl font-bold text-sky-400">R$ 0,00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CADASTRAR -->
+            <div id="cadastrar" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Cadastrar Produto</h2>
+                <form id="formCadastrar" class="max-w-lg space-y-6">
+                    <input id="nome" placeholder="Nome do Produto" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="codigo" placeholder="Código" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="quantidade" type="number" placeholder="Quantidade Inicial" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="minimo" type="number" placeholder="Estoque Mínimo" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="preco" type="number" step="0.01" placeholder="Preço Unitário" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <button type="submit" class="w-full bg-emerald-600 py-4 rounded-2xl font-bold">Cadastrar</button>
+                </form>
+            </div>
+
+            <!-- LISTAR -->
+            <div id="listar" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Lista de Produtos</h2>
+                <div id="tabelaProdutos" class="bg-zinc-900 rounded-3xl overflow-hidden"></div>
+            </div>
+
+            <!-- COMPRA -->
+            <div id="compra" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Compra (Entrada)</h2>
+                <div class="max-w-md">
+                    <select id="produtoCompra" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4"></select>
+                    <input id="qtdCompra" type="number" placeholder="Quantidade" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4">
+                    <button onclick="realizarCompra()" class="w-full bg-emerald-600 py-4 rounded-2xl font-bold">Confirmar Compra</button>
+                </div>
+            </div>
+
+            <!-- VENDA -->
+            <div id="venda" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Venda (Saída)</h2>
+                <div class="max-w-md">
+                    <select id="produtoVenda" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4"></select>
+                    <input id="qtdVenda" type="number" placeholder="Quantidade" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4">
+                    <button onclick="realizarVenda()" class="w-full bg-red-600 py-4 rounded-2xl font-bold">Confirmar Venda</button>
+                </div>
+            </div>
+
+            <!-- AJUSTE -->
+            <div id="ajuste" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Ajuste de Estoque</h2>
+                <div class="max-w-md">
+                    <select id="produtoAjuste" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4"></select>
+                    <input id="qtdAjuste" type="number" placeholder="Nova Quantidade" class="w-full p-4 bg-zinc-900 rounded-2xl mb-4">
+                    <button onclick="realizarAjuste()" class="w-full bg-sky-600 py-4 rounded-2xl font-bold">Ajustar Estoque</button>
+                </div>
+            </div>
+
+            <!-- ABAIXO DO MÍNIMO -->
+            <div id="baixo" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Produtos Abaixo do Mínimo</h2>
+                <div id="tabelaBaixo" class="bg-zinc-900 rounded-3xl overflow-hidden"></div>
+            </div>
+
+            <!-- MOVIMENTOS -->
+            <div id="movimentos" class="screen">
+                <h2 class="text-3xl font-bold mb-6">Histórico de Movimentos</h2>
+                <div id="tabelaMovimentos" class="bg-zinc-900 rounded-3xl overflow-hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+        let movimentos = JSON.parse(localStorage.getItem('movimentos')) || [];
+
+        function saveData() {
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+            localStorage.setItem('movimentos', JSON.stringify(movimentos));
+        }
+
+        function showScreen(screen) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screen).classList.add('active');
+
+            if (screen === 'listar') renderLista();
+            if (screen === 'baixo') renderBaixo();
+            if (screen === 'movimentos') renderMovimentos();
+            if (screen === 'compra' || screen === 'venda' || screen === 'ajuste') carregarProdutosSelect();
+        }
+
+        // Cadastrar Produto
+        document.getElementById('formCadastrar').addEventListener('submit', e => {
+            e.preventDefault();
+            produtos.push({
+                id: Date.now(),
+                nome: document.getElementById('nome').value,
+                codigo: document.getElementById('codigo').value,
+                quantidade: Number(document.getElementById('quantidade').value),
+                minimo: Number(document.getElementById('minimo').value),
+                preco: Number(document.getElementById('preco').value)
+            });
+            saveData();
+            alert("Produto cadastrado com sucesso!");
+            e.target.reset();
+        });
+
+        function renderLista() {
+            let html = `<table class="w-full"><thead class="bg-zinc-800"><tr><th class="p-4">Código</th><th class="p-4">Nome</th><th class="p-4">Estoque</th><th class="p-4">Mínimo</th><th class="p-4">Preço</th></tr></thead><tbody>`;
+            produtos.forEach(p => {
+                html += `<tr class="border-b border-zinc-700"><td class="p-4">${p.codigo}</td><td class="p-4">${p.nome}</td><td class="p-4">${p.quantidade}</td><td class="p-4">${p.minimo}</td><td class="p-4">R$ ${p.preco}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('tabelaProdutos').innerHTML = html;
+        }
+
+        function carregarProdutosSelect() {
+            const selects = ['produtoCompra', 'produtoVenda', 'produtoAjuste'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                select.innerHTML = '<option value="">Selecione o produto</option>';
+                produtos.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.codigo} - ${p.nome} (${p.quantidade})`;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        function realizarCompra() {
+            const id = Number(document.getElementById('produtoCompra').value);
+            const qtd = Number(document.getElementById('qtdCompra').value);
+            if (!id || !qtd) return alert("Preencha todos os campos");
+            const produto = produtos.find(p => p.id === id);
+            if (produto) {
+                produto.quantidade += qtd;
+                movimentos.push({data: new Date().toLocaleString(), tipo: 'Compra', produto: produto.nome, quantidade: qtd});
+                saveData();
+                alert("Compra registrada!");
+            }
+        }
+
+        function realizarVenda() {
+            const id = Number(document.getElementById('produtoVenda').value);
+            const qtd = Number(document.getElementById('qtdVenda').value);
+            if (!id || !qtd) return alert("Preencha todos os campos");
+            const produto = produtos.find(p => p.id === id);
+            if (produto) {
+                if (produto.quantidade < qtd) return alert("Estoque insuficiente!");
+                produto.quantidade -= qtd;
+                movimentos.push({data: new Date().toLocaleString(), tipo: 'Venda', produto: produto.nome, quantidade: -qtd});
+                saveData();
+                alert("Venda registrada!");
+            }
+        }
+
+        function realizarAjuste() {
+            const id = Number(document.getElementById('produtoAjuste').value);
+            const novaQtd = Number(document.getElementById('qtdAjuste').value);
+            if (!id || !novaQtd) return alert("Preencha todos os campos");
+            const produto = produtos.find(p => p.id === id);
+            if (produto) {
+                produto.quantidade = novaQtd;
+                movimentos.push({data: new Date().toLocaleString(), tipo: 'Ajuste', produto: produto.nome, quantidade: novaQtd});
+                saveData();
+                alert("Estoque ajustado!");
+            }
+        }
+
+        function renderBaixo() {
+            const baixos = produtos.filter(p => p.quantidade < p.minimo);
+            let html = `<table class="w-full"><thead class="bg-zinc-800"><tr><th class="p-4">Produto</th><th class="p-4">Estoque Atual</th><th class="p-4">Mínimo</th></tr></thead><tbody>`;
+            baixos.forEach(p => {
+                html += `<tr class="border-b border-zinc-700"><td class="p-4">${p.nome}</td><td class="p-4 text-red-500">${p.quantidade}</td><td class="p-4">${p.minimo}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('tabelaBaixo').innerHTML = html || "<p class='p-6'>Nenhum produto abaixo do mínimo.</p>";
+        }
+
+        function renderMovimentos() {
+            let html = `<table class="w-full"><thead class="bg-zinc-800"><tr><th class="p-4">Data</th><th class="p-4">Tipo</th><th class="p-4">Produto</th><th class="p-4">Quantidade</th></tr></thead><tbody>`;
+            movimentos.forEach(m => {
+                html += `<tr class="border-b border-zinc-700"><td class="p-4">${m.data}</td><td class="p-4">${m.tipo}</td><td class="p-4">${m.produto}</td><td class="p-4">${m.quantidade}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('tabelaMovimentos').innerHTML = html || "<p class='p-6'>Nenhum movimento registrado.</p>";
+        }
+
+        function exportarCSV() {
+            let csv = "Codigo,Nome,Quantidade,Preco\n";
+            produtos.forEach(p => csv += `${p.codigo},${p.nome},${p.quantidade},${p.preco}\n`);
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'estoque.csv';
+            a.click();
+        }
+
+        // Inicialização
+        window.onload = () => {
+            showScreen('dashboard');
+        };
+    </script>
+</body>
+</html>

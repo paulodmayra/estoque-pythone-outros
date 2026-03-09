@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>FAST Clone Completo com Relógio</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: system-ui, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  .container {
+    width: 100%;
+    max-width: 650px;
+    text-align: center;
+    padding: 20px;
+  }
+  .logo {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .logo span { color: #e50914; }
+
+  /* Barra de progresso */
+  .progress {
+    width: 100%;
+    height: 8px;
+    background: #222;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 10px 0 20px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #e50914;
+    transition: width 0.4s;
+  }
+
+  /* Etapas */
+  .step {
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .3s, transform .3s;
+  }
+  .step.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .big-number {
+    font-size: 90px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .unit {
+    font-size: 26px;
+    opacity: 0.8;
+  }
+
+  .sub-row {
+    margin-top: 15px;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .final-grid {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  .final-grid div span.value {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .btn {
+    margin-top: 25px;
+    padding: 10px 26px;
+    border-radius: 999px;
+    border: none;
+    background: #e50914;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Gráfico */
+  canvas {
+    margin-top: 30px;
+    width: 100%;
+    height: 180px;
+    background: #111;
+    border-radius: 8px;
+  }
+
+  /* Relógio */
+  #speedClock { margin-top: 40px; }
+  .clock {
+    width: 200px;
+    height: 200px;
+    border: 6px solid #444;
+    border-radius: 50%;
+    margin: 0 auto;
+    position: relative;
+    background: radial-gradient(circle, #111 60%, #000 100%);
+  }
+  .hand {
+    width: 4px;
+    height: 70px;
+    background: #e50914;
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform-origin: bottom center;
+    transform: rotate(0deg);
+    transition: transform .3s ease-out;
+    border-radius: 4px;
+  }
+  .upload-hand {
+    background: #0af;
+    height: 60px;
+  }
+  .center-dot {
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: calc(50% - 7px);
+    left: calc(50% - 7px);
+  }
+  .clock-labels {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-around;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="logo"><span>FAST</span> clone</div>
+
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+  <!-- ETAPA 1 -->
+  <div class="step active" id="step1">
+    <h2>Etapa 1: Medindo ping</h2>
+    <div class="big-number" id="pingValue">0</div>
+    <div class="unit">ms</div>
+    <div class="sub-row">Jitter: <span id="jitterValue">0</span> ms</div>
+  </div>
+
+  <!-- ETAPA 2 -->
+  <div class="step" id="step2">
+    <h2>Etapa 2: Testando download</h2>
+    <div class="big-number" id="downloadValue">0</div>
+    <div class="unit">Mbps</div>
+  </div>
+
+  <!-- ETAPA 3 -->
+  <div class="step" id="step3">
+    <h2>Etapa 3: Testando upload</h2>
+    <div class="big-number" id="uploadValue">0</div>
+    <div class="unit">Mbps</div>
+  </div>
+
+  <!-- ETAPA 4 -->
+  <div class="step" id="step4">
+    <h2>Resultado da sua conexão</h2>
+    <div class="big-number" id="finalValue">0</div>
+    <div class="unit">Mbps</div>
+
+    <div class="sub-row">
+      Servidor: <span id="serverName"></span> • Ping: <span id="finalPing">0</span> ms • Jitter: <span id="finalJitter">0</span> ms
+    </div>
+
+    <div class="final-grid">
+      <div>Download <span class="value" id="finalDown">0</span> Mbps</div>
+      <div>Upload <span class="value" id="finalUp">0</span> Mbps</div>
+    </div>
+
+    <!-- Relógio -->
+    <div id="speedClock">
+      <div class="clock">
+        <div class="hand download-hand"></div>
+        <div class="hand upload-hand"></div>
+        <div class="center-dot"></div>
+      </div>
+      <div class="clock-labels">
+        <span>Download</span>
+        <span>Upload</span>
+      </div>
+    </div>
+
+    <canvas id="chart"></canvas>
+
+    <button class="btn" onclick="startTest()">Reiniciar teste</button>
+  </div>
+
+</div>
+
+<script>
+  const progressBar = document.getElementById("progressBar");
+
+  const pingValue = document.getElementById("pingValue");
+  const jitterValue = document.getElementById("jitterValue");
+  const downloadValue = document.getElementById("downloadValue");
+  const uploadValue = document.getElementById("uploadValue");
+  const finalValue = document.getElementById("finalValue");
+  const finalDown = document.getElementById("finalDown");
+  const finalUp = document.getElementById("finalUp");
+  const finalPing = document.getElementById("finalPing");
+  const finalJitter = document.getElementById("finalJitter");
+  const serverNameEl = document.getElementById("serverName");
+
+  const steps = [
+    document.getElementById("step1"),
+    document.getElementById("step2"),
+    document.getElementById("step3"),
+    document.getElementById("step4")
+  ];
+
+  const servers = ["São Paulo, BR", "Rio de Janeiro, BR", "Miami, US", "Lisboa, PT", "Frankfurt, DE"];
+
+  const canvas = document.getElementById("chart");
+  const ctx = canvas.getContext("2d");
+  let chartData = [];
+  let continuousTimer = null;
+
+  function showStep(n) {
+    steps.forEach((s, i) => s.classList.toggle("active", i === n));
+    progressBar.style.width = ((n + 1) / steps.length) * 100 + "%";
+  }
+
+  function addChartPoint(v) {
+    chartData.push(v);
+    if (chartData.length > 120) chartData.shift();
+    drawChart();
+  }
+
+  function drawChart() {
+    const w = canvas.width = canvas.clientWidth;
+    const h = canvas.height = canvas.clientHeight;
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, 0, w, h);
+
+    if (chartData.length < 2) return;
+
+    const max = Math.max(...chartData, 1);
+
+    ctx.strokeStyle = "#e50914";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    chartData.forEach((v, i) => {
+      const x = (i / (chartData.length - 1)) * w;
+      const y = h - (v / max) * h;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    ctx.stroke();
+  }
+
+  function updateClock(downloadMbps, uploadMbps) {
+    const maxSpeed = 200;
+    const downloadAngle = Math.min((downloadMbps / maxSpeed) * 180, 180);
+    const uploadAngle = Math.min((uploadMbps / maxSpeed) * 180, 180);
+
+    document.querySelector(".download-hand").style.transform =
+      `rotate(${downloadAngle - 90}deg)`;
+
+    document.querySelector(".upload-hand").style.transform =
+      `rotate(${uploadAngle - 90}deg)`;
+  }
+
+  async function measurePing(samples = 8) {
+    const times = [];
+    for (let i = 0; i < samples; i++) {
+      const start = performance.now();
+      try { await fetch("https://www.cloudflare.com/cdn-cgi/trace", { cache: "no-store", mode: "no-cors" }); } catch {}
+      const t = performance.now() - start;
+      times.push(t);
+      pingValue.textContent = t.toFixed(0);
+      await new Promise(r => setTimeout(r, 80));
+    }
+    const avg = times.reduce((a, b) => a + b, 0) / times.length;
+    const diffs = times.map(t => Math.abs(t - avg));
+    const jitter = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    jitterValue.textContent = jitter.toFixed(0);
+    return { ping: avg, jitter };
+  }
+
+  function bytesToMbps(bytes, seconds) {
+    return (bytes * 8) / (1024 * 1024) / seconds;
+  }
+
+  async function measureDownload(sizeMB = 20) {
+    const sizeBytes = sizeMB * 1024 * 1024;
+    const data = new Uint8Array(sizeBytes);
+    const blob = new Blob([data]);
+    const url = URL.createObjectURL(blob);
+
+    const start = performance.now();
+    const response = await fetch(url);
+    const reader = response.body.getReader();
+
+    let received = 0;
+
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+
+      received += chunk.value.length;
+      const elapsed = (performance.now() - start) / 1000;
+      const mbps = bytesToMbps(received, elapsed);
+
+      downloadValue.textContent = mbps.toFixed(1);
+      addChartPoint(mbps);
+      updateClock(mbps, parseFloat(uploadValue.textContent));
+    }
+
+    URL.revokeObjectURL(url);
+    return parseFloat(downloadValue.textContent);
+  }
+
+  async function measureUpload(sizeMB = 5) {
+    const sizeBytes = sizeMB * 1024 * 1024;
+    const data = new Uint8Array(sizeBytes);
+
+    const start = performance.now();
+    try {
+      await fetch("https://httpbin.org/post?_=" + Date.now(), {
+        method: "POST",
+        body: data,
+        mode: "no-cors"
+      });
+    } catch {}
+    const elapsed = (performance.now() - start) / 1000;
+    return bytesToMbps(sizeBytes, elapsed);
+  }
+
+  async function startContinuousDownload() {
+    if (continuousTimer) clearInterval(continuousTimer);
+    continuousTimer = setInterval(async () => {
+      const sizeMB = 2;
+      const sizeBytes = sizeMB * 1024 * 1024;
+      const data = new Uint8Array(sizeBytes);
+      const blob = new Blob([data]);
+      const url = URL.createObjectURL(blob);
+
+      const start = performance.now();
+      try {
+        const response = await fetch(url);
+        const reader = response.body.getReader();
+        let received = 0;
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          received += chunk.value.length;
+        }
+        const elapsed = (performance.now() - start) / 1000;
+        const mbps = bytesToMbps(received, elapsed);
+        addChartPoint(mbps);
+      } catch {}
+      URL.revokeObjectURL(url);
+    }, 2500);
+  }
+
+  async function startTest() {
+    if (continuousTimer) {
+      clearInterval(continuousTimer);
+      continuousTimer = null;
+    }
+    chartData = [];
+    drawChart();
+
+    steps.forEach(s => s.classList.remove("active"));
+    showStep(0);
+
+    const server = servers[Math.floor(Math.random() * servers.length)];
+    serverNameEl.textContent = server;
+
+    const { ping, jitter } = await measurePing();
+    finalPing.textContent = ping.toFixed(0);
+    finalJitter.textContent = jitter.toFixed(0);
+
+    showStep(1);
+    const download = await measureDownload();
+
+    showStep(2);
+    const upload = await measureUpload();
+    uploadValue.textContent = upload.toFixed(1);
+
+    showStep(3);
+    finalValue.textContent = download.toFixed(1);
+    finalDown.textContent = download.toFixed(1);
+    finalUp.textContent = upload.toFixed(1);
+
+    updateClock(download, upload);
+    startContinuousDownload();
+  }
+
+  startTest();
+</script>
+
+</body>
+</html>

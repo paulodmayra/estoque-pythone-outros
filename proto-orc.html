@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Protótipo OrçaPro - React + Firebase</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f3f4f6;
+      color: #111;
+    }
+    header {
+      background: #4f46e5;
+      color: white;
+      padding: 16px 24px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+    }
+    main {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    h2 {
+      margin-top: 24px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+      color: #555;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      margin-top: 4px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: #e0e7ff;
+      font-weight: 700;
+    }
+    tr:hover {
+      background: #f0f4ff;
+    }
+    .status {
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      display: inline-block;
+    }
+    .status.aberto { background: #2563eb; }
+    .status.aprovado { background: #16a34a; }
+    .status.recusado { background: #dc2626; }
+    .flex-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .flex-grow {
+      flex-grow: 1;
+    }
+    .error {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>OrçaPro - Protótipo Inicial</header>
+  <main>
+    <section id="auth-section">
+      <h2>Login</h2>
+      <label for="email">E-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" />
+      <label for="password">Senha</label>
+      <input type="password" id="password" placeholder="Senha" />
+      <button id="btnLogin">Entrar</button>
+      <p id="loginError" class="error" style="display:none;"></p>
+    </section>
+
+    <section id="app-section" style="display:none;">
+      <h2>Clientes</h2>
+      <form id="client-form">
+        <label for="client-name">Nome *</label>
+        <input type="text" id="client-name" required />
+        <label for="client-phone">Telefone</label>
+        <input type="text" id="client-phone" />
+        <label for="client-email">E-mail</label>
+        <input type="email" id="client-email" />
+        <button type="submit">Adicionar Cliente</button>
+      </form>
+      <table id="clients-table" aria-label="Tabela de clientes">
+        <thead>
+          <tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h2>Orçamentos</h2>
+      <form id="budget-form">
+        <label for="budget-client">Cliente *</label>
+        <select id="budget-client" required></select>
+        <label for="budget-service">Serviço *</label>
+        <select id="budget-service" required>
+          <option value="solda">Solda</option>
+          <option value="serralheria">Serralheria</option>
+          <option value="eletrica">Elétrica</option>
+          <option value="informatica">Informática</option>
+        </select>
+        <label for="budget-description">Descrição *</label>
+        <textarea id="budget-description" required></textarea>
+        <label for="budget-labor">Mão de obra (R$)</label>
+        <input type="number" id="budget-labor" min="0" step="0.01" value="0" />
+        <label for="budget-materials">Materiais (R$)</label>
+        <input type="number" id="budget-materials" min="0" step="0.01" value="0" />
+        <label for="budget-discount">Desconto (R$)</label>
+        <input type="number" id="budget-discount" min="0" step="0.01" value="0" />
+        <label>Status</label>
+        <select id="budget-status">
+          <option value="aberto">Aberto</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="recusado">Recusado</option>
+        </select>
+        <div class="flex-row" style="margin-top:10px;">
+          <strong>Total estimado: R$ <span id="budget-total">0,00</span></strong>
+          <button type="submit" style="margin-left:auto;">Adicionar Orçamento</button>
+        </div>
+      </form>
+      <table id="budgets-table" aria-label="Tabela de orçamentos">
+        <thead>
+          <tr><th>Cliente</th><th>Serviço</th><th>Total</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="btnLogout" style="margin-top:24px; background:#dc2626;">Sair</button>
+    </section>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Configuração Firebase (substitua pelos seus dados)
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJETO.firebaseapp.com",
+      projectId: "SEU_PROJETO",
+      storageBucket: "SEU_PROJETO.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Elementos
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const loginError = document.getElementById('loginError');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnLogout = document.getElementById('btnLogout');
+
+    // Login
+    btnLogin.addEventListener('click', () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      loginError.style.display = 'none';
+
+      if(!email || !password){
+        loginError.textContent = 'Preencha e-mail e senha.';
+        loginError.style.display = 'block';
+        return;
+      }
+
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(err => {
+          loginError.textContent = err.message;
+          loginError.style.display = 'block';
+        });
+    });
+
+    btnLogout.addEventListener('click', () => {
+      auth.signOut();
+    });
+
+    // Monitor auth state
+    auth.onAuthStateChanged(user => {
+      if(user){
+        authSection.style.display = 'none';
+        appSection.style.display = 'block';
+        loadClients();
+        loadBudgets();
+      } else {
+        authSection.style.display = 'block';
+        appSection.style.display = 'none';
+      }
+    });
+
+    // Clientes
+    const clientForm = document.getElementById('client-form');
+    const clientsTableBody = document.querySelector('#clients-table tbody');
+
+    clientForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('client-name').value.trim();
+      const phone = document.getElementById('client-phone').value.trim();
+      const email = document.getElementById('client-email').value.trim();
+
+      if(!name){
+        alert('Nome do cliente é obrigatório.');
+        return;
+      }
+
+      db.collection('clients').add({ name, phone, email, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(() => {
+          clientForm.reset();
+        })
+        .catch(console.error);
+    });
+
+    function loadClients(){
+      db.collection('clients').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        clientsTableBody.innerHTML = '';
+        const budgetClientSelect = document.getElementById('budget-client');
+        budgetClientSelect.innerHTML = '<option value="">Selecione…</option>';
+
+        snapshot.forEach(doc => {
+          const c = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.phone || '')}</td>
+            <td>${escapeHtml(c.email || '')}</td>
+            <td><button data-id="${doc.id}" class="btn-delete-client">Excluir</button></td>
+          `;
+          clientsTableBody.appendChild(tr);
+
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = c.name;
+          budgetClientSelect.appendChild(option);
+        });
+
+        // Delete client buttons
+        document.querySelectorAll('.btn-delete-client').forEach(btn => {
+          btn.onclick = () => {
+            if(confirm('Excluir cliente e todos os orçamentos vinculados?')){
+              const clientId = btn.getAttribute('data-id');
+              // Delete budgets linked to client
+              db.collection('budgets').where('clientId', '==', clientId).get().then(snap => {
+                const batch = db.batch();
+                snap.forEach(doc => batch.delete(doc.ref));
+                batch.delete(db.collection('clients').doc(clientId));
+                return batch.commit();
+              }).catch(console.error);
+            }
+          };
+        });
+      });
+    }
+
+    // Orçamentos
+    const budgetForm = document.getElementById('budget-form');
+    const budgetsTableBody = document.querySelector('#budgets-table tbody');
+    const budgetTotalSpan = document.getElementById('budget-total');
+
+    function calculateTotal(){
+      const labor = parseFloat(document.getElementById('budget-labor').value) || 0;
+      const materials = parseFloat(document.getElementById('budget-materials').value) || 0;
+      const discount = parseFloat(document.getElementById('budget-discount').value) || 0;
+      return Math.max(0, labor + materials - discount);
+    }
+
+    ['budget-labor','budget-materials','budget-discount'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        budgetTotalSpan.textContent = calculateTotal().toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+      });
+    });
+
+    budgetForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const clientId = document.getElementById('budget-client').value;
+      const service = document.getElementById('budget-service').value;
+      const description = document.getElementById('budget-description').value.trim();
+      const labor = parseFloat(document.getElementById('budget-labor').value) || 0;
+      const materials = parseFloat(document.getElementById('budget-materials').value) || 0;
+      const discount = parseFloat(document.getElementById('budget-discount').value) || 0;
+      const status = document.getElementById('budget-status').value;
+
+      if(!clientId){
+        alert('Selecione um cliente.');
+        return;
+      }
+      if(!description){
+        alert('Descrição é obrigatória.');
+        return;
+      }
+
+      const total = Math.max(0, labor + materials - discount);
+
+      db.collection('budgets').add({
+        clientId,
+        service,
+        description,
+        labor,
+        materials,
+        discount,
+        total,
+        status,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        budgetForm.reset();
+        budgetTotalSpan.textContent = 'R$ 0,00';
+      }).catch(console.error);
+    });
+
+    function loadBudgets(){
+      db.collection('budgets').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        budgetsTableBody.innerHTML = '';
+        snapshot.forEach(doc => {
+          const b = doc.data();
+          // Get client name asynchronously (simplified: we assume clients are loaded)
+          db.collection('clients').doc(b.clientId).get().then(clientDoc => {
+            const clientName = clientDoc.exists ? clientDoc.data().name : '(Cliente removido)';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${escapeHtml(clientName)}</td>
+              <td>${escapeHtml(b.service)}</td>
+              <td>${b.total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</td>
+              <td><span class="status ${b.status}">${escapeHtml(b.status)}</span></td>
+              <td><button data-id="${doc.id}" class="btn-delete-budget">Excluir</button></td>
+            `;
+            budgetsTableBody.appendChild(tr);
+
+            // Delete budget buttons
+            tr.querySelector('.btn-delete-budget').onclick = () => {
+              if(confirm('Excluir orçamento?')){
+                db.collection('budgets').doc(doc.id).delete().catch(console.error);
+              }
+            };
+          });
+        });
+      });
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+      });
+    }
+  </script>
+</body>
+</html>

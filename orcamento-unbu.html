@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>OrçaPro — Orçamentos de Serviços</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,300..900;1,300..900&family=Fraunces:opsz,wght@9..144,300..900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Palette: industrial clean + warm accent */
+      --bg0:#0b1220;
+      --bg1:#0f1a2e;
+      --paper:#0f172a;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.085);
+      --stroke: rgba(255,255,255,.12);
+      --stroke2: rgba(255,255,255,.18);
+
+      --text:#eaf0ff;
+      --muted: rgba(234,240,255,.72);
+      --faint: rgba(234,240,255,.55);
+
+      --brand:#7c3aed;      /* violet */
+      --brand2:#22c55e;     /* green */
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --info:#38bdf8;
+
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+
+      --container: 1180px;
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --display: "Fraunces", serif;
+      --body: "Archivo", system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--body);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(124,58,237,.22), transparent 55%),
+        radial-gradient(900px 650px at 80% 20%, rgba(56,189,248,.14), transparent 55%),
+        radial-gradient(900px 650px at 70% 85%, rgba(34,197,94,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* Subtle texture (no external images) */
+    .noise{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.06;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" stitchTiles="stitch"/></filter><rect width="140" height="140" filter="url(%23n)" opacity=".55"/></svg>');
+      mix-blend-mode:overlay;
+    }
+
+    a{ color:inherit; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    ::selection{ background: rgba(124,58,237,.35); }
+
+    .container{
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 22px 18px 40px;
+    }
+
+    /* Header */
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(11,18,32,.82), rgba(11,18,32,.52));
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .topbar{
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .brand{
+      display:flex;
+      align-items:flex-start;
+      gap: 14px;
+      min-width: 260px;
+    }
+    .mark{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background:
+        radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,.18), transparent 60%),
+        linear-gradient(135deg, rgba(124,58,237,.95), rgba(56,189,248,.55));
+      box-shadow: 0 10px 30px rgba(124,58,237,.25);
+      border: 1px solid rgba(255,255,255,.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .mark:before{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: conic-gradient(from 140deg, rgba(255,255,255,.0), rgba(255,255,255,.24), rgba(255,255,255,.0));
+      animation: spin 8s linear infinite;
+      opacity:.7;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .brand h1{
+      margin:0;
+      font-family: var(--display);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      font-size: clamp(18px, 1.6vw, 22px);
+      line-height: 1.05;
+    }
+    .brand p{
+      margin:6px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.2;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius: 999px;
+      background: rgba(34,197,94,.95);
+      box-shadow: 0 0 0 4px rgba(34,197,94,.14);
+    }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(234,240,255,.82);
+    }
+
+    /* Layout */
+    main .grid{
+      display:grid;
+      grid-template-columns: 1.05fr 1.45fr;
+      gap: 18px;
+      margin-top: 18px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      main .grid{ grid-template-columns: 1fr; }
+      .brand{ min-width: unset; }
+    }
+
+    /* Panels */
+    .panel{
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadow2);
+      overflow: hidden;
+      position: relative;
+    }
+    .panel:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(800px 260px at 10% 0%, rgba(124,58,237,.18), transparent 55%),
+        radial-gradient(700px 260px at 90% 0%, rgba(56,189,248,.14), transparent 55%);
+      opacity:.9;
+    }
+    .panel > *{ position:relative; z-index:1; }
+
+    .panel-head{
+      padding: 16px 16px 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(0,0,0,.12), transparent);
+    }
+    .panel-title{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      min-width: 200px;
+    }
+    .panel-title h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,.88);
+      font-weight: 750;
+    }
+    .panel-title span{
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.25;
+    }
+
+    .panel-body{ padding: 14px 16px 16px; }
+
+    /* Buttons */
+    .btn{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.92);
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-size: 13px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      transition: transform .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.085);
+      border-color: rgba(255,255,255,.22);
+      box-shadow: 0 10px 24px rgba(0,0,0,.22);
+    }
+    .btn:active{ transform: translateY(0px) scale(.98); }
+    .btn:focus-visible{
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(124,58,237,.22), 0 0 0 1px rgba(255,255,255,.22) inset;
+      border-color: rgba(124,58,237,.55);
+    }
+    .btn-primary{
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(56,189,248,.65));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn-primary:hover{
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(56,189,248,.78));
+      box-shadow: 0 16px 34px rgba(124,58,237,.22);
+    }
+    .btn-danger{
+      background: linear-gradient(135deg, rgba(239,68,68,.92), rgba(245,158,11,.22));
+      border-color: rgba(255,255,255,.16);
+    }
+    .btn-ghost{
+      background: rgba(255,255,255,.03);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none !important;
+      box-shadow:none !important;
+    }
+
+    .icon{
+      width: 16px; height: 16px; display:inline-block;
+    }
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    /* Form */
+    .form{
+      display:grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .form-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(255,255,255,.14);
+    }
+    .form-head h3{
+      margin:0;
+      font-family: var(--display);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      font-size: 18px;
+    }
+    .form-head .hint{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 560px){
+      .row{ grid-template-columns: 1fr; }
+    }
+
+    label{
+      display:block;
+      color: rgba(234,240,255,.78);
+      font-size: 12px;
+      margin: 0 0 6px;
+      letter-spacing: .02em;
+    }
+
+    .field input, .field select, .field textarea{
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.92);
+      outline: none;
+      transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+      font-size: 13px;
+    }
+    .field textarea{ min-height: 84px; resize: vertical; }
+    .field input::placeholder, .field textarea::placeholder{ color: rgba(234,240,255,.42); }
+
+    .field input:focus, .field select:focus, .field textarea:focus{
+      border-color: rgba(56,189,248,.45);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.16);
+    }
+    .error{
+      margin-top: 6px;
+      color: rgba(254,226,226,.95);
+      font-size: 12px;
+      display:none;
+    }
+    .field.invalid input, .field.invalid select, .field.invalid textarea{
+      border-color: rgba(239,68,68,.65);
+      box-shadow: 0 0 0 4px rgba(239,68,68,.14);
+    }
+    .field.invalid .error{ display:block; }
+
+    .subgrid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 10px;
+      align-items:end;
+    }
+    @media (max-width: 720px){
+      .subgrid{ grid-template-columns: 1fr; }
+    }
+
+    /* Lists / tables */
+    .list-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 12px;
+      margin: 14px 0 10px;
+    }
+    .list-head .meta{
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .table-wrap{
+      border-radius: var(--radius-lg);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th{
+      text-align:left;
+      padding: 10px 10px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,.70);
+      background: rgba(255,255,255,.05);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    tbody td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: rgba(234,240,255,.88);
+      vertical-align: top;
+    }
+    tbody tr{
+      cursor:pointer;
+      transition: background .14s ease;
+    }
+    tbody tr:hover{ background: rgba(124,58,237,.10); }
+    tbody tr.selected{
+      background: rgba(34,197,94,.10);
+      outline: 1px solid rgba(34,197,94,.22);
+    }
+
+    .actions{
+      display:flex;
+      gap: 6px;
+      justify-content:flex-end;
+    }
+    .btn-mini{
+      padding: 7px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.86);
+      white-space: nowrap;
+    }
+
+    .svc{ border-color: rgba(255,255,255,.12); }
+    .svc.solda{ background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.22); }
+    .svc.serralheria{ background: rgba(56,189,248,.12); border-color: rgba(56,189,248,.22); }
+    .svc.eletrica{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.22); }
+    .svc.informatica{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.22); }
+
+    .status.aberto{ background: rgba(56,189,248,.10); border-color: rgba(56,189,248,.22); }
+    .status.aprovado{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.22); }
+    .status.recusado{ background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.22); }
+
+    .totals{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .totals span{ color: var(--muted); font-size: 12.5px; }
+    .totals strong{
+      font-family: var(--display);
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      font-size: 18px;
+    }
+
+    /* Details */
+    .details{
+      margin-top: 18px;
+    }
+    .details-grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 860px){
+      .details-grid{ grid-template-columns: 1fr; }
+    }
+
+    .empty{
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,.18);
+      color: var(--muted);
+      background: rgba(0,0,0,.10);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px 12px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+    }
+    .kv dt{
+      margin:0;
+      color: rgba(234,240,255,.62);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .kv dd{
+      margin:0;
+      color: rgba(234,240,255,.90);
+      font-size: 13px;
+      line-height: 1.3;
+    }
+    .kv code{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(234,240,255,.86);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      width: min(420px, calc(100vw - 32px));
+      display:grid;
+      gap: 10px;
+      z-index: 60;
+    }
+    .toast .item{
+      border-radius: 16px;
+      background: rgba(12,18,32,.74);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow2);
+      padding: 12px 12px;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      animation: in .22s ease both;
+    }
+    @keyframes in{
+      from{ opacity:0; transform: translateY(10px); }
+      to{ opacity:1; transform: translateY(0); }
+    }
+    .toast .badge{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+    .toast .content{ flex:1; }
+    .toast .content strong{
+      display:block;
+      font-size: 13px;
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+    .toast .content p{
+      margin:0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.25;
+    }
+    .toast .close{
+      border:0;
+      background: transparent;
+      color: rgba(234,240,255,.75);
+      cursor:pointer;
+      padding: 6px 8px;
+      border-radius: 12px;
+    }
+    .toast .close:hover{ background: rgba(255,255,255,.06); }
+
+    /* Reveal */
+    [data-reveal]{
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .revealed{
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+      transition: opacity .5s ease, transform .5s ease;
+    }
+
+    /* Footer */
+    footer{
+      margin-top: 22px;
+      color: rgba(234,240,255,.62);
+      font-size: 12px;
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .link{
+      color: rgba(234,240,255,.78);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header>
+    <div class="topbar">
+      <div class="brand" aria-label="Marca">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>OrçaPro</h1>
+          <p>Orçamentos rápidos para <span class="pill svc solda">Solda</span> <span class="pill svc serralheria">Serralheria</span> <span class="pill svc eletrica">Elétrica</span> <span class="pill svc informatica">Informática</span></p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="chip" title="Status do armazenamento local">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="storageInfo">Salvando no seu navegador</span>
+        </div>
+        <div class="chip" title="Atalhos">
+          <span>Atalhos:</span>
+          <span class="kbd">N</span> <span class="kbd">C</span> <span class="kbd">/</span>
+        </div>
+        <button class="btn btn-ghost" id="btnExportar" type="button" title="Exportar JSON">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 14v4a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Exportar
+        </button>
+        <button class="btn btn-ghost" id="btnImportar" type="button" title="Importar JSON">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21V11m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 10V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Importar
+        </button>
+        <button class="btn btn-danger" id="btnReset" type="button" title="Apagar tudo (clientes e orçamentos)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6m-8 4h10M10 7l1 14h2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid" aria-label="Área principal">
+      <!-- CLIENTES -->
+      <section class="panel" data-reveal aria-label="Clientes">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2>Clientes</h2>
+            <span>Cadastre e edite. Os dados ficam salvos no seu navegador.</span>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="btnNovoCliente" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Novo cliente
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <form class="form" id="formCliente" style="display:none" novalidate>
+            <div class="form-head">
+              <div>
+                <h3 id="clienteFormTitulo">Novo cliente</h3>
+                <div class="hint" id="clienteFormHint">Preencha os campos e salve.</div>
+              </div>
+              <span class="pill" id="clienteIdPill" style="display:none"><code id="clienteIdCode"></code></span>
+            </div>
+
+            <div class="row">
+              <div class="field" id="f_cliNome">
+                <label for="cliNome">Nome *</label>
+                <input id="cliNome" autocomplete="name" placeholder="Ex.: João Silva" />
+                <div class="error">Informe o nome do cliente.</div>
+              </div>
+              <div class="field" id="f_cliTelefone">
+                <label for="cliTelefone">Telefone *</label>
+                <input id="cliTelefone" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999" />
+                <div class="error">Informe um telefone válido.</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field" id="f_cliEmail">
+                <label for="cliEmail">E-mail</label>
+                <input id="cliEmail" type="email" autocomplete="email" placeholder="cliente@exemplo.com" />
+                <div class="error">E-mail inválido.</div>
+              </div>
+              <div class="field" id="f_cliEndereco">
+                <label for="cliEndereco">Endereço</label>
+                <input id="cliEndereco" autocomplete="street-address" placeholder="Rua, número, bairro, cidade" />
+                <div class="error">Endereço muito longo.</div>
+              </div>
+            </div>
+
+            <div class="toolbar" style="justify-content:space-between">
+              <button class="btn btn-ghost" id="btnCancelarCliente" type="button">Cancelar</button>
+              <div class="toolbar">
+                <button class="btn btn-danger" id="btnExcluirCliente" type="button" style="display:none">Excluir</button>
+                <button class="btn btn-primary" id="btnSalvarCliente" type="submit">Salvar cliente</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="list-head">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <strong style="font-family:var(--display); font-size:18px; letter-spacing:-.01em;">Lista</strong>
+                <span class="pill" id="clientesCount">0 clientes</span>
+              </div>
+              <div class="meta">Clique em uma linha para selecionar. Use “/” para buscar.</div>
+            </div>
+
+            <div class="toolbar" aria-label="Ferramentas de clientes">
+              <div class="field" style="min-width:min(320px, 100%);">
+                <label for="buscaCliente" style="margin-bottom:6px;">Buscar</label>
+                <input id="buscaCliente" placeholder="Nome, telefone ou e-mail" />
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap" role="region" aria-label="Tabela de clientes" tabindex="0">
+            <table id="clientesTabela">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Telefone</th>
+                  <th>E-mail</th>
+                  <th style="width:120px; text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ORÇAMENTOS -->
+      <section class="panel" data-reveal aria-label="Orçamentos">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2>Orçamentos</h2>
+            <span>Monte rápido, calcule total automaticamente e acompanhe status.</span>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="btnNovoOrcamento" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Novo orçamento
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <form class="form" id="formOrcamento" style="display:none" novalidate>
+            <div class="form-head">
+              <div>
+                <h3 id="orcFormTitulo">Novo orçamento</h3>
+                <div class="hint" id="orcFormHint">Selecione cliente, descreva o serviço e salve.</div>
+              </div>
+              <span class="pill" id="orcIdPill" style="display:none"><code id="orcIdCode"></code></span>
+            </div>
+
+            <div class="subgrid">
+              <div class="field" id="f_orcCliente">
+                <label for="orcCliente">Cliente *</label>
+                <select id="orcCliente"></select>
+                <div class="error">Selecione um cliente.</div>
+              </div>
+
+              <div class="field" id="f_orcStatus">
+                <label for="orcStatus">Status</label>
+                <select id="orcStatus">
+                  <option value="aberto">Aberto</option>
+                  <option value="aprovado">Aprovado</option>
+                  <option value="recusado">Recusado</option>
+                </select>
+                <div class="error"></div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field" id="f_orcTipo">
+                <label for="orcTipo">Serviço principal</label>
+                <select id="orcTipo">
+                  <option value="solda">Solda</option>
+                  <option value="serralheria">Serralheria</option>
+                  <option value="eletrica">Elétrica</option>
+                  <option value="informatica">Informática</option>
+                </select>
+                <div class="error"></div>
+              </div>
+              <div class="field" id="f_orcData">
+                <label for="orcData">Data</label>
+                <input id="orcData" type="date" />
+                <div class="error"></div>
+              </div>
+            </div>
+
+            <div class="field" id="f_orcDescricao">
+              <label for="orcDescricao">Descrição do serviço *</label>
+              <textarea id="orcDescricao" placeholder="Detalhe o serviço a ser executado (medidas, local, prazos, etc.)"></textarea>
+              <div class="error">Descreva o serviço (mín. 10 caracteres).</div>
+            </div>
+
+            <div class="row">
+              <div class="field" id="f_orcMaoObra">
+                <label for="orcMaoObra">Mão de obra (R$)</label>
+                <input id="orcMaoObra" type="number" step="0.01" min="0" placeholder="0,00" />
+                <div class="error">Valor inválido.</div>
+              </div>
+              <div class="field" id="f_orcMateriais">
+                <label for="orcMateriais">Materiais (R$)</label>
+                <input id="orcMateriais" type="number" step="0.01" min="0" placeholder="0,00" />
+                <div class="error">Valor inválido.</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field" id="f_orcDesconto">
+                <label for="orcDesconto">Desconto (R$)</label>
+                <input id="orcDesconto" type="number" step="0.01" min="0" value="0" />
+                <div class="error">Valor inválido.</div>
+              </div>
+              <div class="totals" aria-live="polite">
+                <span>Total estimado</span>
+                <strong id="orcTotal">R$ 0,00</strong>
+              </div>
+            </div>
+
+            <div class="toolbar" style="justify-content:space-between">
+              <button class="btn btn-ghost" id="btnCancelarOrcamento" type="button">Cancelar</button>
+              <div class="toolbar">
+                <button class="btn btn-danger" id="btnExcluirOrcamento" type="button" style="display:none">Excluir</button>
+                <button class="btn btn-primary" id="btnSalvarOrcamento" type="submit">Salvar orçamento</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="list-head">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <strong style="font-family:var(--display); font-size:18px; letter-spacing:-.01em;">Lista</strong>
+                <span class="pill" id="orcamentosCount">0 orçamentos</span>
+              </div>
+              <div class="meta">Clique para ver detalhes. Ordenado por data (mais recente primeiro).</div>
+            </div>
+
+            <div class="toolbar" aria-label="Ferramentas de orçamentos">
+              <div class="field" style="min-width:min(320px, 100%);">
+                <label for="buscaOrcamento" style="margin-bottom:6px;">Buscar</label>
+                <input id="buscaOrcamento" placeholder="Cliente, serviço, status ou descrição" />
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap" role="region" aria-label="Tabela de orçamentos" tabindex="0">
+            <table id="orcamentosTabela">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Serviço</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th style="width:120px; text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+    </section>
+
+    <!-- DETALHES -->
+    <section class="panel details" data-reveal aria-label="Detalhes do orçamento">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>Detalhes</h2>
+          <span>Selecione um orçamento para ver/compartilhar as informações.</span>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-ghost" id="btnCopiarResumo" type="button" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 9h10v10H9V9Z" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2"/></svg>
+            Copiar resumo
+          </button>
+          <button class="btn btn-ghost" id="btnImprimir" type="button" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8V4h10v4" stroke="currentColor" stroke-width="2"/><path d="M7 17h10v3H7v-3Z" stroke="currentColor" stroke-width="2"/><path d="M6 10h12a2 2 0 0 1 2 2v3h-3" stroke="currentColor" stroke-width="2"/><path d="M4 15H1v-3a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2"/></svg>
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="details-grid">
+          <div id="detalhesOrcamento" class="empty">
+            Clique em um orçamento na lista para ver os detalhes aqui.
+          </div>
+
+          <dl class="kv" id="detalhesKV" style="display:none">
+            <dt>Cliente</dt><dd id="d_cliente"></dd>
+            <dt>Telefone</dt><dd id="d_tel"></dd>
+            <dt>E-mail</dt><dd id="d_email"></dd>
+            <dt>Serviço</dt><dd id="d_servico"></dd>
+            <dt>Status</dt><dd id="d_status"></dd>
+            <dt>Valores</dt><dd id="d_valores"></dd>
+            <dt>Total</dt><dd id="d_total"></dd>
+            <dt>Descrição</dt><dd id="d_desc"></dd>
+            <dt>ID</dt><dd><code id="d_id"></code></dd>
+          </dl>
+        </div>
+
+        <footer>
+          <span>Dados armazenados em <span class="kbd">localStorage</span>. Exportar/Importar para backup.</span>
+          <span><a class="link" href="#" id="btnDemo">Carregar dados de exemplo</a></span>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <input type="file" id="fileImport" accept="application/json" hidden />
+
+  <div class="toast" id="toast" aria-live="polite" aria-relevant="additions"></div>
+
+  <script>
+    // =========================
+    // OrçaPro — Single-file SPA
+    // =========================
+
+    // Storage keys
+    const K_CLIENTES = "orcPro_clientes_v2";
+    const K_ORCAMENTOS = "orcPro_orcamentos_v2";
+
+    // State
+    let clientes = [];
+    let orcamentos = [];
+    let clienteEditandoId = null;
+    let orcamentoEditandoId = null;
+    let orcamentoSelecionadoId = null;
+    let clienteSelecionadoId = null;
+
+    // DOM
+    const $ = (s, el=document) => el.querySelector(s);
+    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+    const el = {
+      storageInfo: $("#storageInfo"),
+
+      // Clientes
+      btnNovoCliente: $("#btnNovoCliente"),
+      formCliente: $("#formCliente"),
+      clienteFormTitulo: $("#clienteFormTitulo"),
+      clienteFormHint: $("#clienteFormHint"),
+      clienteIdPill: $("#clienteIdPill"),
+      clienteIdCode: $("#clienteIdCode"),
+      cliNome: $("#cliNome"),
+      cliTelefone: $("#cliTelefone"),
+      cliEmail: $("#cliEmail"),
+      cliEndereco: $("#cliEndereco"),
+      btnCancelarCliente: $("#btnCancelarCliente"),
+      btnExcluirCliente: $("#btnExcluirCliente"),
+      clientesCount: $("#clientesCount"),
+      clientesTabela: $("#clientesTabela"),
+      clientesTbody: $("#clientesTabela tbody"),
+      buscaCliente: $("#buscaCliente"),
+
+      // Orçamentos
+      btnNovoOrcamento: $("#btnNovoOrcamento"),
+      formOrcamento: $("#formOrcamento"),
+      orcFormTitulo: $("#orcFormTitulo"),
+      orcFormHint: $("#orcFormHint"),
+      orcIdPill: $("#orcIdPill"),
+      orcIdCode: $("#orcIdCode"),
+      orcCliente: $("#orcCliente"),
+      orcTipo: $("#orcTipo"),
+      orcStatus: $("#orcStatus"),
+      orcData: $("#orcData"),
+      orcDescricao: $("#orcDescricao"),
+      orcMaoObra: $("#orcMaoObra"),
+      orcMateriais: $("#orcMateriais"),
+      orcDesconto: $("#orcDesconto"),
+      orcTotal: $("#orcTotal"),
+      btnCancelarOrcamento: $("#btnCancelarOrcamento"),
+      btnExcluirOrcamento: $("#btnExcluirOrcamento"),
+      orcamentosCount: $("#orcamentosCount"),
+      orcamentosTabela: $("#orcamentosTabela"),
+      orcamentosTbody: $("#orcamentosTabela tbody"),
+      buscaOrcamento: $("#buscaOrcamento"),
+
+      // Details
+      detalhesOrcamento: $("#detalhesOrcamento"),
+      detalhesKV: $("#detalhesKV"),
+      d_cliente: $("#d_cliente"),
+      d_tel: $("#d_tel"),
+      d_email: $("#d_email"),
+      d_servico: $("#d_servico"),
+      d_status: $("#d_status"),
+      d_valores: $("#d_valores"),
+      d_total: $("#d_total"),
+      d_desc: $("#d_desc"),
+      d_id: $("#d_id"),
+      btnCopiarResumo: $("#btnCopiarResumo"),
+      btnImprimir: $("#btnImprimir"),
+
+      // Top actions
+      btnExportar: $("#btnExportar"),
+      btnImportar: $("#btnImportar"),
+      fileImport: $("#fileImport"),
+      btnReset: $("#btnReset"),
+      btnDemo: $("#btnDemo"),
+
+      // Toast
+      toast: $("#toast"),
+    };
+
+    // ===== Utilities =====
+    const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2,10)));
+
+    function moeda(v){
+      const n = Number(v || 0);
+      return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+    }
+    function n2(v){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function toast(type, title, msg){
+      const colors = { ok:"#22c55e", warn:"#f59e0b", err:"#ef4444", info:"#38bdf8" };
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <span class="badge" style="background:${colors[type] || colors.info}; box-shadow:0 0 0 4px color-mix(in oklab, ${colors[type] || colors.info} 20%, transparent);" aria-hidden="true"></span>
+        <div class="content">
+          <strong>${escapeHtml(title)}</strong>
+          <p>${escapeHtml(msg)}</p>
+        </div>
+        <button class="close" type="button" aria-label="Fechar">✕</button>
+      `;
+      el.toast.appendChild(item);
+      const t = setTimeout(()=> item.remove(), 4200);
+      item.querySelector(".close").addEventListener("click", ()=>{ clearTimeout(t); item.remove(); });
+    }
+
+    function confirmDialog(message){
+      // keeps it simple and reliable as single-file
+      return window.confirm(message);
+    }
+
+    function salvarDados(){
+      localStorage.setItem(K_CLIENTES, JSON.stringify(clientes));
+      localStorage.setItem(K_ORCAMENTOS, JSON.stringify(orcamentos));
+      el.storageInfo.textContent = `Atualizado em ${new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"})}`;
+    }
+
+    function carregarDados(){
+      try{
+        const c = localStorage.getItem(K_CLIENTES);
+        const o = localStorage.getItem(K_ORCAMENTOS);
+        clientes = c ? JSON.parse(c) : [];
+        orcamentos = o ? JSON.parse(o) : [];
+      }catch(err){
+        clientes = [];
+        orcamentos = [];
+        console.error(err);
+        toast("err","Falha ao carregar","Os dados salvos parecem corrompidos. Você pode resetar e recomeçar.");
+      }
+    }
+
+    function serviceLabel(tipo){
+      const map = {
+        solda: "Solda",
+        serralheria: "Serralheria",
+        eletrica: "Elétrica",
+        informatica: "Informática"
+      };
+      return map[tipo] || tipo;
+    }
+
+    function calcTotal({ maoObra, materiais, desconto }){
+      const total = n2(maoObra) + n2(materiais) - n2(desconto);
+      return Math.max(0, total);
+    }
+
+    function normalizePhone(str){
+      const s = String(str||"").trim();
+      const digits = s.replace(/\D/g,"");
+      // Accept 10 or 11 digits (BR)
+      if(digits.length < 10 || digits.length > 11) return null;
+      return digits;
+    }
+
+    function formatPhoneBR(digits){
+      if(!digits) return "";
+      const d = digits.replace(/\D/g,"");
+      if(d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+      if(d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+      return digits;
+    }
+
+    function validEmail(email){
+      if(!email) return true; // optional
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+    }
+
+    function setInvalid(fieldId, yes){
+      const box = $("#"+fieldId);
+      if(!box) return;
+      box.classList.toggle("invalid", !!yes);
+    }
+
+    function todayISO(){
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    // ===== Rendering =====
+    function renderClientes(){
+      const q = (el.buscaCliente.value || "").trim().toLowerCase();
+      const filtered = clientes
+        .slice()
+        .sort((a,b)=> (a.nome||"").localeCompare(b.nome||"", "pt-BR"))
+        .filter(c=>{
+          if(!q) return true;
+          const hay = `${c.nome||""} ${c.telefone||""} ${c.email||""}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+      el.clientesCount.textContent = `${filtered.length} cliente${filtered.length===1?"":"s"}`;
+
+      el.clientesTbody.innerHTML = filtered.map(c=>{
+        const selected = (c.id === clienteSelecionadoId) ? "selected" : "";
+        return `
+          <tr data-id="${escapeHtml(c.id)}" class="${selected}" aria-label="Cliente ${escapeHtml(c.nome)}">
+            <td><strong style="font-weight:750">${escapeHtml(c.nome)}</strong></td>
+            <td>${escapeHtml(formatPhoneBR(c.telefone))}</td>
+            <td>${escapeHtml(c.email || "—")}</td>
+            <td>
+              <div class="actions" aria-label="Ações do cliente">
+                <button class="btn btn-mini btn-ghost" data-action="edit" type="button" aria-label="Editar cliente">Editar</button>
+                <button class="btn btn-mini btn-danger" data-action="del" type="button" aria-label="Excluir cliente">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      renderSelectClientes();
+    }
+
+    function renderSelectClientes(){
+      const current = el.orcCliente.value;
+      const opts = clientes
+        .slice()
+        .sort((a,b)=> (a.nome||"").localeCompare(b.nome||"", "pt-BR"))
+        .map(c=> `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`)
+        .join("");
+
+      el.orcCliente.innerHTML = `<option value="">Selecione…</option>${opts}`;
+
+      if(current && clientes.some(c=>c.id===current)) el.orcCliente.value = current;
+      else if(orcamentoEditandoId){
+        // keep empty if editing but missing
+      }else if(clientes.length === 1){
+        el.orcCliente.value = clientes[0].id;
+      }
+    }
+
+    function renderOrcamentos(){
+      const q = (el.buscaOrcamento.value || "").trim().toLowerCase();
+
+      const rows = orcamentos
+        .slice()
+        .sort((a,b)=> (b.data||"").localeCompare(a.data||"") || (b.criadoEm||"").localeCompare(a.criadoEm||""))
+        .filter(o=>{
+          if(!q) return true;
+          const cliente = clientes.find(c=>c.id===o.clienteId);
+          const hay = `${cliente?.nome||""} ${serviceLabel(o.tipo)} ${o.status||""} ${o.descricao||""}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+      el.orcamentosCount.textContent = `${rows.length} orçamento${rows.length===1?"":"s"}`;
+
+      el.orcamentosTbody.innerHTML = rows.map(o=>{
+        const cliente = clientes.find(c=>c.id===o.clienteId);
+        const total = calcTotal(o);
+        const selected = (o.id === orcamentoSelecionadoId) ? "selected" : "";
+        return `
+          <tr data-id="${escapeHtml(o.id)}" class="${selected}" aria-label="Orçamento de ${escapeHtml(cliente?.nome || "Cliente removido")}">
+            <td>
+              <strong style="font-weight:750">${escapeHtml(cliente?.nome || "Cliente removido")}</strong>
+              <div style="color:rgba(234,240,255,.62); font-size:12px; margin-top:2px;">${escapeHtml(o.data ? new Date(o.data+"T00:00:00").toLocaleDateString("pt-BR") : "—")}</div>
+            </td>
+            <td>
+              <span class="pill svc ${escapeHtml(o.tipo)}">${escapeHtml(serviceLabel(o.tipo))}</span>
+            </td>
+            <td><span class="pill"><strong style="font-family:var(--display)">${escapeHtml(moeda(total))}</strong></span></td>
+            <td><span class="pill status ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span></td>
+            <td>
+              <div class="actions" aria-label="Ações do orçamento">
+                <button class="btn btn-mini btn-ghost" data-action="open" type="button" aria-label="Ver detalhes">Abrir</button>
+                <button class="btn btn-mini btn-ghost" data-action="edit" type="button" aria-label="Editar orçamento">Editar</button>
+                <button class="btn btn-mini btn-danger" data-action="del" type="button" aria-label="Excluir orçamento">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderDetalhes(){
+      const o = orcamentos.find(x=>x.id===orcamentoSelecionadoId);
+      if(!o){
+        el.detalhesKV.style.display = "none";
+        el.detalhesOrcamento.style.display = "block";
+        el.detalhesOrcamento.className = "empty";
+        el.detalhesOrcamento.textContent = "Clique em um orçamento na lista para ver os detalhes aqui.";
+        el.btnCopiarResumo.disabled = true;
+        el.btnImprimir.disabled = true;
+        return;
+      }
+
+      const c = clientes.find(x=>x.id===o.clienteId);
+      const total = calcTotal(o);
+
+      el.detalhesOrcamento.style.display = "none";
+      el.detalhesKV.style.display = "grid";
+      el.btnCopiarResumo.disabled = false;
+      el.btnImprimir.disabled = false;
+
+      el.d_cliente.textContent = c?.nome || "Cliente removido";
+      el.d_tel.textContent = c?.telefone ? formatPhoneBR(c.telefone) : "—";
+      el.d_email.textContent = c?.email || "—";
+      el.d_servico.innerHTML = `${serviceLabel(o.tipo)} ${o.data ? "• "+new Date(o.data+"T00:00:00").toLocaleDateString("pt-BR") : ""}`;
+      el.d_status.innerHTML = o.status;
+      el.d_valores.textContent = `Mão de obra: ${moeda(o.maoObra)} • Materiais: ${moeda(o.materiais)} • Desconto: ${moeda(o.desconto)}`;
+      el.d_total.textContent = moeda(total);
+      el.d_desc.textContent = o.descricao || "—";
+      el.d_id.textContent = o.id;
+    }
+
+    // ===== Forms (open/close/fill) =====
+    function openClienteForm(mode, id=null){
+      el.formCliente.style.display = "grid";
+      el.formCliente.scrollIntoView({ behavior:"smooth", block:"nearest" });
+
+      if(mode === "new"){
+        clienteEditandoId = null;
+        el.clienteFormTitulo.textContent = "Novo cliente";
+        el.clienteFormHint.textContent = "Campos com * são obrigatórios.";
+        el.btnExcluirCliente.style.display = "none";
+        el.clienteIdPill.style.display = "none";
+        el.cliNome.value = "";
+        el.cliTelefone.value = "";
+        el.cliEmail.value = "";
+        el.cliEndereco.value = "";
+      }else{
+        const c = clientes.find(x=>x.id===id);
+        if(!c) return;
+        clienteEditandoId = c.id;
+        el.clienteFormTitulo.textContent = "Editar cliente";
+        el.clienteFormHint.textContent = "Atualize e salve. Orçamentos vinculados permanecem.";
+        el.btnExcluirCliente.style.display = "inline-flex";
+        el.clienteIdPill.style.display = "inline-flex";
+        el.clienteIdCode.textContent = c.id;
+
+        el.cliNome.value = c.nome || "";
+        el.cliTelefone.value = formatPhoneBR(c.telefone || "");
+        el.cliEmail.value = c.email || "";
+        el.cliEndereco.value = c.endereco || "";
+      }
+
+      // reset validation UI
+      ["f_cliNome","f_cliTelefone","f_cliEmail","f_cliEndereco"].forEach(id=> setInvalid(id,false));
+      setTimeout(()=> el.cliNome.focus(), 60);
+    }
+
+    function closeClienteForm(){
+      el.formCliente.style.display = "none";
+      clienteEditandoId = null;
+      ["f_cliNome","f_cliTelefone","f_cliEmail","f_cliEndereco"].forEach(id=> setInvalid(id,false));
+    }
+
+    function openOrcamentoForm(mode, id=null){
+      if(clientes.length === 0){
+        toast("warn","Sem clientes","Cadastre um cliente antes de criar um orçamento.");
+        openClienteForm("new");
+        return;
+      }
+
+      el.formOrcamento.style.display = "grid";
+      el.formOrcamento.scrollIntoView({ behavior:"smooth", block:"nearest" });
+
+      renderSelectClientes();
+
+      if(mode === "new"){
+        orcamentoEditandoId = null;
+        el.orcFormTitulo.textContent = "Novo orçamento";
+        el.orcFormHint.textContent = "Total calcula automaticamente conforme os valores.";
+        el.btnExcluirOrcamento.style.display = "none";
+        el.orcIdPill.style.display = "none";
+
+        el.orcCliente.value = clienteSelecionadoId && clientes.some(c=>c.id===clienteSelecionadoId) ? clienteSelecionadoId : (el.orcCliente.value || "");
+        el.orcTipo.value = "solda";
+        el.orcStatus.value = "aberto";
+        el.orcData.value = todayISO();
+        el.orcDescricao.value = "";
+        el.orcMaoObra.value = "";
+        el.orcMateriais.value = "";
+        el.orcDesconto.value = "0";
+      }else{
+        const o = orcamentos.find(x=>x.id===id);
+        if(!o) return;
+        orcamentoEditandoId = o.id;
+        el.orcFormTitulo.textContent = "Editar orçamento";
+        el.orcFormHint.textContent = "Você pode ajustar status, valores e descrição.";
+        el.btnExcluirOrcamento.style.display = "inline-flex";
+        el.orcIdPill.style.display = "inline-flex";
+        el.orcIdCode.textContent = o.id;
+
+        el.orcCliente.value = o.clienteId || "";
+        el.orcTipo.value = o.tipo || "solda";
+        el.orcStatus.value = o.status || "aberto";
+        el.orcData.value = o.data || todayISO();
+        el.orcDescricao.value = o.descricao || "";
+        el.orcMaoObra.value = (o.maoObra ?? "");
+        el.orcMateriais.value = (o.materiais ?? "");
+        el.orcDesconto.value = (o.desconto ?? 0);
+      }
+
+      updateOrcTotal();
+      ["f_orcCliente","f_orcDescricao","f_orcMaoObra","f_orcMateriais","f_orcDesconto"].forEach(id=> setInvalid(id,false));
+      setTimeout(()=> el.orcDescricao.focus(), 60);
+    }
+
+    function closeOrcamentoForm(){
+      el.formOrcamento.style.display = "none";
+      orcamentoEditandoId = null;
+      ["f_orcCliente","f_orcDescricao","f_orcMaoObra","f_orcMateriais","f_orcDesconto"].forEach(id=> setInvalid(id,false));
+    }
+
+    function updateOrcTotal(){
+      const total = calcTotal({
+        maoObra: el.orcMaoObra.value,
+        materiais: el.orcMateriais.value,
+        desconto: el.orcDesconto.value
+      });
+      el.orcTotal.textContent = moeda(total);
+    }
+
+    // ===== CRUD =====
+    function validateClienteForm(){
+      const nome = (el.cliNome.value||"").trim();
+      const phoneDigits = normalizePhone(el.cliTelefone.value);
+      const email = (el.cliEmail.value||"").trim();
+      const endereco = (el.cliEndereco.value||"").trim();
+
+      let ok = true;
+      setInvalid("f_cliNome", !nome); if(!nome) ok=false;
+      setInvalid("f_cliTelefone", !phoneDigits); if(!phoneDigits) ok=false;
+      setInvalid("f_cliEmail", !validEmail(email)); if(!validEmail(email)) ok=false;
+      setInvalid("f_cliEndereco", endereco.length > 180); if(endereco.length>180) ok=false;
+
+      return ok ? { nome, telefone: phoneDigits, email, endereco } : null;
+    }
+
+    function upsertCliente(data){
+      if(clienteEditandoId){
+        const idx = clientes.findIndex(c=>c.id===clienteEditandoId);
+        if(idx >= 0){
+          clientes[idx] = { ...clientes[idx], ...data, atualizadoEm: new Date().toISOString() };
+          toast("ok","Cliente atualizado", clientes[idx].nome);
+        }
+      }else{
+        const c = { id: uid(), ...data, criadoEm: new Date().toISOString() };
+        clientes.push(c);
+        clienteSelecionadoId = c.id;
+        toast("ok","Cliente criado", c.nome);
+      }
+      salvarDados();
+      renderClientes();
+      renderOrcamentos();
+    }
+
+    function deleteCliente(id){
+      const c = clientes.find(x=>x.id===id);
+      if(!c) return;
+
+      const vinculados = orcamentos.filter(o=>o.clienteId===id).length;
+      const msg = vinculados
+        ? `Excluir "${c.nome}" também removerá ${vinculados} orçamento(s) vinculado(s). Deseja continuar?`
+        : `Excluir "${c.nome}"?`;
+
+      if(!confirmDialog(msg)) return;
+
+      clientes = clientes.filter(x=>x.id!==id);
+      orcamentos = orcamentos.filter(o=>o.clienteId!==id);
+
+      if(clienteSelecionadoId === id) clienteSelecionadoId = null;
+      if(orcamentoSelecionadoId && !orcamentos.some(o=>o.id===orcamentoSelecionadoId)) orcamentoSelecionadoId = null;
+
+      salvarDados();
+      renderClientes();
+      renderOrcamentos();
+      renderDetalhes();
+      closeClienteForm();
+      toast("ok","Cliente excluído", `${c.nome}`);
+    }
+
+    function validateOrcamentoForm(){
+      const clienteId = el.orcCliente.value;
+      const tipo = el.orcTipo.value;
+      const status = el.orcStatus.value;
+      const data = el.orcData.value || todayISO();
+      const descricao = (el.orcDescricao.value||"").trim();
+
+      const maoObra = n2(el.orcMaoObra.value);
+      const materiais = n2(el.orcMateriais.value);
+      const desconto = n2(el.orcDesconto.value);
+
+      let ok = true;
+      setInvalid("f_orcCliente", !clienteId); if(!clienteId) ok=false;
+      setInvalid("f_orcDescricao", descricao.length < 10); if(descricao.length<10) ok=false;
+
+      // numeric validations
+      setInvalid("f_orcMaoObra", maoObra < 0); if(maoObra<0) ok=false;
+      setInvalid("f_orcMateriais", materiais < 0); if(materiais<0) ok=false;
+      setInvalid("f_orcDesconto", desconto < 0); if(desconto<0) ok=false;
+
+      if(desconto > (maoObra + materiais)){
+        setInvalid("f_orcDesconto", true);
+        ok=false;
+      }
+
+      if(!ok) return null;
+
+      return { clienteId, tipo, status, data, descricao, maoObra, materiais, desconto };
+    }
+
+    function upsertOrcamento(data){
+      if(orcamentoEditandoId){
+        const idx = orcamentos.findIndex(o=>o.id===orcamentoEditandoId);
+        if(idx>=0){
+          orcamentos[idx] = { ...orcamentos[idx], ...data, atualizadoEm: new Date().toISOString() };
+          toast("ok","Orçamento atualizado", `Total: ${moeda(calcTotal(orcamentos[idx]))}`);
+          orcamentoSelecionadoId = orcamentos[idx].id;
+        }
+      }else{
+        const o = { id: uid(), ...data, criadoEm: new Date().toISOString() };
+        orcamentos.push(o);
+        orcamentoSelecionadoId = o.id;
+        toast("ok","Orçamento criado", `Total: ${moeda(calcTotal(o))}`);
+      }
+      salvarDados();
+      renderOrcamentos();
+      renderDetalhes();
+    }
+
+    function deleteOrcamento(id){
+      const o = orcamentos.find(x=>x.id===id);
+      if(!o) return;
+      if(!confirmDialog("Excluir este orçamento?")) return;
+
+      orcamentos = orcamentos.filter(x=>x.id!==id);
+      if(orcamentoSelecionadoId === id) orcamentoSelecionadoId = null;
+
+      salvarDados();
+      renderOrcamentos();
+      renderDetalhes();
+      closeOrcamentoForm();
+      toast("ok","Orçamento excluído","Removido com sucesso.");
+    }
+
+    // ===== Export/Import =====
+    function exportar(){
+      const payload = {
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        clientes,
+        orcamentos
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orcpro-backup-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast("info","Exportado","Arquivo JSON gerado para backup.");
+    }
+
+    function importarFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const data = JSON.parse(String(reader.result || "{}"));
+          if(!data || (!Array.isArray(data.clientes) && !Array.isArray(data.orcamentos))){
+            throw new Error("Formato inválido");
+          }
+          const newClientes = Array.isArray(data.clientes) ? data.clientes : [];
+          const newOrcs = Array.isArray(data.orcamentos) ? data.orcamentos : [];
+          clientes = newClientes.map(c=>({
+            id: c.id || uid(),
+            nome: c.nome || "",
+            telefone: c.telefone || "",
+            email: c.email || "",
+            endereco: c.endereco || "",
+            criadoEm: c.criadoEm || new Date().toISOString()
+          }));
+          orcamentos = newOrcs.map(o=>({
+            id: o.id || uid(),
+            clienteId: o.clienteId || "",
+            tipo: o.tipo || "solda",
+            status: o.status || "aberto",
+            data: o.data || todayISO(),
+            descricao: o.descricao || "",
+            maoObra: n2(o.maoObra),
+            materiais: n2(o.materiais),
+            desconto: n2(o.desconto),
+            criadoEm: o.criadoEm || new Date().toISOString()
+          }));
+
+          clienteEditandoId = null;
+          orcamentoEditandoId = null;
+          clienteSelecionadoId = null;
+          orcamentoSelecionadoId = null;
+
+          salvarDados();
+          renderClientes();
+          renderOrcamentos();
+          renderDetalhes();
+          toast("ok","Importado","Dados carregados com sucesso.");
+        }catch(err){
+          console.error(err);
+          toast("err","Falha ao importar","Verifique se o arquivo é um JSON válido exportado pelo OrçaPro.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ===== Details actions =====
+    function resumoOrcamentoTexto(o){
+      const c = clientes.find(x=>x.id===o.clienteId);
+      const total = calcTotal(o);
+      const parts = [
+        `ORÇAMENTO — ${serviceLabel(o.tipo)}`,
+        `Cliente: ${c?.nome || "Cliente removido"}`,
+        c?.telefone ? `Telefone: ${formatPhoneBR(c.telefone)}` : null,
+        c?.email ? `E-mail: ${c.email}` : null,
+        `Data: ${o.data ? new Date(o.data+"T00:00:00").toLocaleDateString("pt-BR") : "—"}`,
+        `Status: ${o.status}`,
+        `Descrição: ${o.descricao}`,
+        `Mão de obra: ${moeda(o.maoObra)} | Materiais: ${moeda(o.materiais)} | Desconto: ${moeda(o.desconto)}`,
+        `TOTAL: ${moeda(total)}`,
+        `ID: ${o.id}`
+      ].filter(Boolean);
+      return parts.join("\n");
+    }
+
+    async function copiarResumo(){
+      const o = orcamentos.find(x=>x.id===orcamentoSelecionadoId);
+      if(!o) return;
+      const text = resumoOrcamentoTexto(o);
+      try{
+        await navigator.clipboard.writeText(text);
+        toast("ok","Copiado","Resumo do orçamento copiado para a área de transferência.");
+      }catch{
+        // fallback
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast("ok","Copiado","Resumo copiado (modo compatibilidade).");
+      }
+    }
+
+    function imprimir(){
+      const o = orcamentos.find(x=>x.id===orcamentoSelecionadoId);
+      if(!o) return;
+      const c = clientes.find(x=>x.id===o.clienteId);
+      const total = calcTotal(o);
+
+      const html = `
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1"/>
+          <title>Orçamento ${o.id}</title>
+          <style>
+            body{ font-family: Arial, sans-serif; margin: 26px; color:#111; }
+            h1{ margin: 0 0 10px; font-size: 20px; }
+            .meta{ color:#444; font-size: 12px; margin-bottom: 16px; }
+            .box{ border:1px solid #ddd; border-radius: 10px; padding: 14px; margin: 10px 0; }
+            .k{ color:#555; font-size: 12px; text-transform: uppercase; letter-spacing:.08em; }
+            .v{ font-size: 14px; margin-top: 4px; }
+            .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .total{ font-size: 18px; font-weight: 800; }
+            @media print{ .no-print{ display:none; } body{ margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Orçamento — ${serviceLabel(o.tipo)}</h1>
+          <div class="meta">ID: ${o.id} • Data: ${o.data ? new Date(o.data+"T00:00:00").toLocaleDateString("pt-BR") : "—"} • Status: ${o.status}</div>
+
+          <div class="box">
+            <div class="k">Cliente</div>
+            <div class="v"><strong>${escapeHtml(c?.nome || "Cliente removido")}</strong></div>
+            <div class="v">${escapeHtml(c?.telefone ? formatPhoneBR(c.telefone) : "—")} • ${escapeHtml(c?.email || "—")}</div>
+            <div class="v">${escapeHtml(c?.endereco || "")}</div>
+          </div>
+
+          <div class="box">
+            <div class="k">Descrição</div>
+            <div class="v">${escapeHtml(o.descricao)}</div>
+          </div>
+
+          <div class="box grid">
+            <div><div class="k">Mão de obra</div><div class="v">${moeda(o.maoObra)}</div></div>
+            <div><div class="k">Materiais</div><div class="v">${moeda(o.materiais)}</div></div>
+            <div><div class="k">Desconto</div><div class="v">${moeda(o.desconto)}</div></div>
+            <div><div class="k">Total</div><div class="v total">${moeda(total)}</div></div>
+          </div>
+
+          <div class="no-print" style="margin-top:14px; color:#555; font-size:12px;">
+            Gerado pelo OrçaPro (armazenamento local).
+          </div>
+          <script>window.print();</script>
+        </body>
+        </html>
+      `;
+
+      const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=700");
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
+
+    // ===== Event wiring =====
+    function wire(){
+      // Reveal on scroll
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach((e)=>{
+          if(e.isIntersecting) e.target.classList.add("revealed");
+        });
+      }, { threshold: .12 });
+      $$("[data-reveal]").forEach((node, i)=>{
+        node.style.transitionDelay = `${i*70}ms`;
+        io.observe(node);
+      });
+
+      // Open forms
+      el.btnNovoCliente.addEventListener("click", ()=> openClienteForm("new"));
+      el.btnNovoOrcamento.addEventListener("click", ()=> openOrcamentoForm("new"));
+
+      // Cancel
+      el.btnCancelarCliente.addEventListener("click", closeClienteForm);
+      el.btnCancelarOrcamento.addEventListener("click", closeOrcamentoForm);
+
+      // Live filters
+      el.buscaCliente.addEventListener("input", renderClientes);
+      el.buscaOrcamento.addEventListener("input", renderOrcamentos);
+
+      // Total live calc
+      ["input","change"].forEach(evt=>{
+        el.orcMaoObra.addEventListener(evt, updateOrcTotal);
+        el.orcMateriais.addEventListener(evt, updateOrcTotal);
+        el.orcDesconto.addEventListener(evt, updateOrcTotal);
+      });
+
+      // Submit forms
+      el.formCliente.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const data = validateClienteForm();
+        if(!data){
+          toast("warn","Revise os campos","Alguns campos obrigatórios estão inválidos.");
+          return;
+        }
+        upsertCliente(data);
+        closeClienteForm();
+      });
+
+      el.formOrcamento.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const data = validateOrcamentoForm();
+        if(!data){
+          toast("warn","Revise os campos","Verifique cliente, descrição e valores.");
+          return;
+        }
+        upsertOrcamento(data);
+        closeOrcamentoForm();
+      });
+
+      // Delete buttons inside forms
+      el.btnExcluirCliente.addEventListener("click", ()=>{
+        if(!clienteEditandoId) return;
+        deleteCliente(clienteEditandoId);
+      });
+      el.btnExcluirOrcamento.addEventListener("click", ()=>{
+        if(!orcamentoEditandoId) return;
+        deleteOrcamento(orcamentoEditandoId);
+      });
+
+      // Table actions (delegation)
+      el.clientesTbody.addEventListener("click", (e)=>{
+        const tr = e.target.closest("tr[data-id]");
+        if(!tr) return;
+        const id = tr.dataset.id;
+
+        const btn = e.target.closest("button[data-action]");
+        if(btn){
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if(action === "edit") openClienteForm("edit", id);
+          if(action === "del") deleteCliente(id);
+          return;
+        }
+
+        clienteSelecionadoId = id;
+        renderClientes();
+      });
+
+      el.orcamentosTbody.addEventListener("click", (e)=>{
+        const tr = e.target.closest("tr[data-id]");
+        if(!tr) return;
+        const id = tr.dataset.id;
+
+        const btn = e.target.closest("button[data-action]");
+        if(btn){
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if(action === "open"){
+            orcamentoSelecionadoId = id;
+            renderOrcamentos();
+            renderDetalhes();
+            document.querySelector("[aria-label='Detalhes do orçamento']").scrollIntoView({behavior:"smooth", block:"start"});
+          }
+          if(action === "edit") openOrcamentoForm("edit", id);
+          if(action === "del") deleteOrcamento(id);
+          return;
+        }
+
+        orcamentoSelecionadoId = id;
+        renderOrcamentos();
+        renderDetalhes();
+      });
+
+      // Details actions
+      el.btnCopiarResumo.addEventListener("click", copiarResumo);
+      el.btnImprimir.addEventListener("click", imprimir);
+
+      // Export/Import/Reset
+      el.btnExportar.addEventListener("click", exportar);
+      el.btnImportar.addEventListener("click", ()=> el.fileImport.click());
+      el.fileImport.addEventListener("change", (e)=>{
+        const file = e.target.files && e.target.files[0];
+        if(file) importarFile(file);
+        el.fileImport.value = "";
+      });
+
+      el.btnReset.addEventListener("click", ()=>{
+        if(!confirmDialog("Tem certeza que deseja apagar todos os clientes e orçamentos?")) return;
+        clientes = [];
+        orcamentos = [];
+        clienteSelecionadoId = null;
+        orcamentoSelecionadoId = null;
+        salvarDados();
+        renderClientes();
+        renderOrcamentos();
+        renderDetalhes();
+        closeClienteForm();
+        closeOrcamentoForm();
+        toast("ok","Reset concluído","Base limpa.");
+      });
+
+      // Demo data
+      el.btnDemo.addEventListener("click", (e)=>{
+        e.preventDefault();
+        if(clientes.length || orcamentos.length){
+          if(!confirmDialog("Isso irá substituir os dados atuais? (Recomendado exportar antes)")) return;
+        }
+        const c1 = { id: uid(), nome:"Mariana Costa", telefone: normalizePhone("(11) 98888-1234"), email:"mariana.costa@exemplo.com", endereco:"Rua das Oficinas, 120 — São Paulo/SP", criadoEm: new Date().toISOString() };
+        const c2 = { id: uid(), nome:"Oficina Horizonte", telefone: normalizePhone("(21) 97777-2222"), email:"contato@horizonte.com.br", endereco:"Av. Central, 450 — Rio de Janeiro/RJ", criadoEm: new Date().toISOString() };
+        clientes = [c1, c2];
+
+        orcamentos = [
+          { id: uid(), clienteId:c1.id, tipo:"eletrica", status:"aberto", data: todayISO(), descricao:"Revisão do quadro de disjuntores e substituição de 3 tomadas com mau contato.", maoObra: 320, materiais: 180, desconto: 0, criadoEm: new Date().toISOString() },
+          { id: uid(), clienteId:c2.id, tipo:"serralheria", status:"aprovado", data: todayISO(), descricao:"Confecção e instalação de portão de correr (3m) com trilho e roldanas reforçadas.", maoObra: 950, materiais: 1450, desconto: 150, criadoEm: new Date().toISOString() }
+        ];
+
+        clienteSelecionadoId = c1.id;
+        orcamentoSelecionadoId = orcamentos[0].id;
+
+        salvarDados();
+        renderClientes();
+        renderOrcamentos();
+        renderDetalhes();
+        toast("ok","Dados carregados","Exemplos inseridos com sucesso.");
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener("keydown", (e)=>{
+        if(e.target && ["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)){
+          if(e.key === "Escape"){
+            closeClienteForm();
+            closeOrcamentoForm();
+          }
+          return;
+        }
+
+        if(e.key === "n" || e.key === "N"){
+          openOrcamentoForm("new");
+        }
+        if(e.key === "c" || e.key === "C"){
+          openClienteForm("new");
+        }
+        if(e.key === "/"){
+          e.preventDefault();
+          el.buscaOrcamento.focus();
+        }
+        if(e.key === "Escape"){
+          closeClienteForm();
+          closeOrcamentoForm();
+        }
+      });
+
+      // Make phone input nicer: format on blur
+      el.cliTelefone.addEventListener("blur", ()=>{
+        const digits = normalizePhone(el.cliTelefone.value);
+        if(digits) el.cliTelefone.value = formatPhoneBR(digits);
+      });
+    }
+
+    // ===== Init =====
+    function init(){
+      carregarDados();
+
+      // set default date for new orcamento
+      el.orcData.value = todayISO();
+
+      renderClientes();
+      renderOrcamentos();
+      renderDetalhes();
+      wire();
+
+      if(clientes.length === 0 && orcamentos.length === 0){
+        toast("info","Bem-vindo","Dica: clique em “Carregar dados de exemplo” no rodapé.");
+      }else{
+        el.storageInfo.textContent = "Dados carregados";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

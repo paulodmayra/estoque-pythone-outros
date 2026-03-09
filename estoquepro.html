@@ -1,0 +1,122 @@
+import streamlit as st
+import pandas as pd
+import sqlite3
+from datetime import datetime
+
+# ==================== CONFIGURAÇÃO ====================
+st.set_page_config(page_title="ESTOQUE PRO", layout="wide")
+st.title("📦 ESTOQUE PRO - Controle Completo")
+
+# Conexão com banco SQLite
+conn = sqlite3.connect('estoque.db', check_same_thread=False)
+c = conn.cursor()
+
+# Criar tabelas (se não existir)
+c.execute('''CREATE TABLE IF NOT EXISTS produtos 
+             (id INTEGER PRIMARY KEY, nome TEXT, codigo TEXT, quantidade INTEGER, minimo INTEGER, preco REAL)''')
+c.execute('''CREATE TABLE IF NOT EXISTS movimentos 
+             (id INTEGER PRIMARY KEY, data TEXT, tipo TEXT, produto TEXT, quantidade INTEGER)''')
+conn.commit()
+
+# ==================== FUNÇÕES ====================
+def carregar_produtos():
+    return pd.read_sql_query("SELECT * FROM produtos", conn)
+
+def salvar_produto(nome, codigo, quantidade, minimo, preco):
+    c.execute("INSERT INTO produtos (nome, codigo, quantidade, minimo, preco) VALUES (?, ?, ?, ?, ?)",
+              (nome, codigo, quantidade, minimo, preco))
+    conn.commit()
+
+def atualizar_estoque(produto_id, nova_quantidade, tipo):
+    c.execute("UPDATE produtos SET quantidade = ? WHERE id = ?", (nova_quantidade, produto_id))
+    c.execute("INSERT INTO movimentos (data, tipo, produto, quantidade) VALUES (?, ?, ?, ?)",
+              (datetime.now().strftime("%d/%m/%Y %H:%M"), tipo, 
+               c.execute("SELECT nome FROM produtos WHERE id=?", (produto_id,)).fetchone()[0], 
+               nova_quantidade))
+    conn.commit()
+
+# ==================== MENU LATERAL ====================
+menu = st.sidebar.selectbox("Escolha uma opção", [
+    "Dashboard", "Cadastrar Produto", "Listar Produtos", 
+    "Compra (Entrada)", "Venda (Saída)", "Ajuste de Estoque", 
+    "Abaixo do Mínimo", "Movimentos", "Exportar CSV"
+])
+
+# ==================== TELAS ====================
+if menu == "Dashboard":
+    st.header("Dashboard")
+    produtos = carregar_produtos()
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total de Produtos", len(produtos))
+    col2.metric("Baixo Estoque", len(produtos[produtos['quantidade'] < produtos['minimo']]))
+    col3.metric("Valor Total em Estoque", f"R$ {produtos['quantidade'] * produtos['preco'].sum():,.2f}")
+
+elif menu == "Cadastrar Produto":
+    st.header("Cadastrar Novo Produto")
+    with st.form("form_cadastrar"):
+        nome = st.text_input("Nome do Produto")
+        codigo = st.text_input("Código")
+        qtd = st.number_input("Quantidade Inicial", min_value=0)
+        minimo = st.number_input("Estoque Mínimo", min_value=0)
+        preco = st.number_input("Preço Unitário", min_value=0.0, format="%.2f")
+        if st.form_submit_button("Cadastrar"):
+            salvar_produto(nome, codigo, qtd, minimo, preco)
+            st.success("Produto cadastrado com sucesso!")
+
+elif menu == "Listar Produtos":
+    st.header("Lista de Produtos")
+    df = carregar_produtos()
+    st.dataframe(df, use_container_width=True)
+
+elif menu == "Compra (Entrada)":
+    st.header("Compra - Entrada de Estoque")
+    df = carregar_produtos()
+    produto = st.selectbox("Produto", df['nome'])
+    qtd = st.number_input("Quantidade a comprar", min_value=1)
+    if st.button("Confirmar Compra"):
+        idx = df[df['nome'] == produto].index[0]
+        nova_qtd = df.loc[idx, 'quantidade'] + qtd
+        atualizar_estoque(df.loc[idx, 'id'], nova_qtd, "Compra")
+        st.success(f"Compra de {qtd} unidades de {produto} registrada!")
+
+elif menu == "Venda (Saída)":
+    st.header("Venda - Saída de Estoque")
+    df = carregar_produtos()
+    produto = st.selectbox("Produto", df['nome'])
+    qtd = st.number_input("Quantidade a vender", min_value=1)
+    if st.button("Confirmar Venda"):
+        idx = df[df['nome'] == produto].index[0]
+        if df.loc[idx, 'quantidade'] >= qtd:
+            nova_qtd = df.loc[idx, 'quantidade'] - qtd
+            atualizar_estoque(df.loc[idx, 'id'], nova_qtd, "Venda")
+            st.success(f"Venda de {qtd} unidades de {produto} registrada!")
+        else:
+            st.error("Estoque insuficiente!")
+
+elif menu == "Ajuste de Estoque":
+    st.header("Ajuste de Estoque")
+    df = carregar_produtos()
+    produto = st.selectbox("Produto", df['nome'])
+    nova_qtd = st.number_input("Nova Quantidade", min_value=0)
+    if st.button("Ajustar"):
+        idx = df[df['nome'] == produto].index[0]
+        atualizar_estoque(df.loc[idx, 'id'], nova_qtd, "Ajuste")
+        st.success("Estoque ajustado!")
+
+elif menu == "Abaixo do Mínimo":
+    st.header("Produtos Abaixo do Mínimo")
+    df = carregar_produtos()
+    baixos = df[df['quantidade'] < df['minimo']]
+    st.dataframe(baixos, use_container_width=True)
+
+elif menu == "Movimentos":
+    st.header("Histórico de Movimentos")
+    df_mov = pd.read_sql_query("SELECT * FROM movimentos ORDER BY id DESC", conn)
+    st.dataframe(df_mov, use_container_width=True)
+
+elif menu == "Exportar CSV":
+    df = carregar_produtos()
+    csv = df.to_csv(index=False).encode()
+    st.download_button("Baixar CSV", csv, "estoque.csv", "text/csv")
+
+# Rodar com: streamlit run estoquepro.py

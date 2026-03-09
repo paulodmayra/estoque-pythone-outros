@@ -1,0 +1,2040 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ofício — Orçamentos (Solda • Serralheria • Elétrica • Informática)</title>
+  <meta name="description" content="App offline em HTML para orçamento de serviços: cadastro de clientes, serviços por cliente, inclusão/edição/exclusão, cálculo automático, PDF/Impressão, exportação/importação e histórico." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#07090b;
+      --bg1:#0b0f14;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --stroke: rgba(255,255,255,.12);
+      --stroke2: rgba(255,255,255,.18);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.70);
+      --faint: rgba(255,255,255,.52);
+
+      --accent:#d8ff5a;
+      --accent2:#7ce9ff;
+      --warn:#ffce5c;
+      --danger:#ff6b6b;
+      --ok:#72ffb8;
+
+      --radius-xl: 26px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+
+      --shadow: 0 18px 50px rgba(0,0,0,.55);
+      --shadow2: 0 12px 30px rgba(0,0,0,.45);
+
+      --max: 1240px;
+
+      --h1: clamp(1.55rem, 2.6vw, 2.35rem);
+      --h2: clamp(1.15rem, 1.55vw, 1.35rem);
+      --h3: 1.05rem;
+      --p: clamp(.98rem, 1.02vw, 1.05rem);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Spline Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 820px at 18% 14%, rgba(216,255,90,.16), transparent 58%),
+        radial-gradient(900px 700px at 84% 18%, rgba(124,233,255,.14), transparent 60%),
+        radial-gradient(900px 700px at 50% 82%, rgba(255,206,92,.09), transparent 62%),
+        linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg0));
+      overflow-x:hidden;
+    }
+
+    .gridpaper{
+      position:fixed; inset:0; pointer-events:none;
+      opacity:.20;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 64px 64px,
+        linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 64px 64px,
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.06), transparent 40%),
+        radial-gradient(circle at 80% 55%, rgba(255,255,255,.05), transparent 42%);
+      mix-blend-mode: overlay;
+    }
+
+    a{color:inherit}
+    button, input, select, textarea{font:inherit}
+    :focus-visible{outline: 2px solid rgba(216,255,90,.85); outline-offset:2px; border-radius: 10px;}
+
+    .wrap{width:min(var(--max), calc(100% - 2.2rem)); margin-inline:auto}
+
+    header{
+      position:sticky; top:0; z-index:60;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(11,15,20,.80), rgba(11,15,20,.45));
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:1rem;
+      padding:.9rem 0;
+    }
+    .brand{
+      display:flex; align-items:center; gap:.85rem;
+      text-decoration:none;
+      min-width: 260px;
+    }
+    .mark{
+      width:40px; height:40px; border-radius:14px;
+      background:
+        radial-gradient(18px 18px at 30% 30%, rgba(216,255,90,.85), transparent 60%),
+        radial-gradient(20px 20px at 70% 65%, rgba(124,233,255,.70), transparent 62%),
+        linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow: 0 12px 26px rgba(0,0,0,.42);
+      position:relative; overflow:hidden;
+    }
+    .mark:before{
+      content:""; position:absolute; inset:-1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.11) 50%, transparent 100%);
+      transform: translateX(-70%);
+      animation: sheen 6.2s ease-in-out infinite;
+      opacity:.75;
+    }
+    @keyframes sheen{
+      0%, 42%{transform:translateX(-70%)}
+      58%, 100%{transform:translateX(70%)}
+    }
+    .brand strong{
+      font-family:"Fraunces", serif;
+      letter-spacing:-.2px;
+      display:block;
+      line-height:1.05;
+      font-size:1.08rem;
+    }
+    .brand span{
+      display:block;
+      margin-top:.12rem;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .rightbar{
+      display:flex; gap:.65rem; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:.55rem;
+      padding:.52rem .78rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color:var(--muted);
+      font-size:.92rem;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 5px rgba(114,255,184,.12);
+    }
+
+    .btn{
+      appearance:none; border:0; cursor:pointer;
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:.6rem;
+      padding:.78rem 1rem;
+      border-radius:999px;
+      font-weight:700;
+      letter-spacing:.2px;
+      transition: transform .14s ease, filter .14s ease, background .14s ease, border-color .14s ease;
+      white-space:nowrap;
+      user-select:none;
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(216,255,90,.95), rgba(124,233,255,.82));
+      color:#061015;
+      box-shadow: 0 14px 34px rgba(0,0,0,.46);
+    }
+    .btn.primary:hover{transform: translateY(-1px); filter: saturate(1.08) contrast(1.02)}
+    .btn.primary:active{transform: translateY(0) scale(.98)}
+    .btn.ghost{
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:none;
+      font-weight:650;
+    }
+    .btn.ghost:hover{transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18)}
+    .btn.ghost:active{transform: translateY(0) scale(.98)}
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border:1px solid rgba(255,107,107,.25);
+      color: rgba(255,255,255,.92);
+      font-weight:700;
+    }
+    .btn.danger:hover{background: rgba(255,107,107,.18)}
+    .btn.small{padding:.62rem .85rem; font-size:.92rem}
+
+    .kbd{
+      font-family: var(--mono);
+      font-size:.82rem;
+      padding:.14rem .4rem;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.78);
+    }
+
+    main{padding: 1.3rem 0 2.2rem}
+
+    .layout{
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap: 1.2rem;
+      align-items:start;
+    }
+
+    .panel{
+      border-radius: var(--radius-xl);
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding: 1rem 1rem .9rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(900px 240px at 10% 10%, rgba(216,255,90,.14), transparent 55%),
+        radial-gradient(800px 240px at 90% 30%, rgba(124,233,255,.12), transparent 55%),
+        rgba(0,0,0,.14);
+    }
+    .panelHeadRow{
+      display:flex; align-items:flex-start; justify-content:space-between; gap: .8rem;
+    }
+    h1{
+      font-family:"Fraunces", serif;
+      font-size: var(--h1);
+      margin:0;
+      letter-spacing:-.35px;
+      line-height:1.04;
+    }
+    .sub{
+      margin:.35rem 0 0;
+      color:var(--muted);
+      font-size: .98rem;
+      max-width: 48ch;
+    }
+
+    .sidebarBody{padding: 1rem}
+    .field{
+      display:grid;
+      gap:.4rem;
+      margin-bottom: .85rem;
+    }
+    .labelRow{
+      display:flex; align-items:baseline; justify-content:space-between; gap:.8rem;
+    }
+    label{
+      font-weight:650;
+      letter-spacing:.15px;
+      color: rgba(255,255,255,.86);
+      font-size:.95rem;
+    }
+    .hint{color: var(--faint); font-size:.9rem}
+    input[type="text"], input[type="tel"], input[type="email"], input[type="number"], input[type="date"], select, textarea{
+      width:100%;
+      padding: .78rem .85rem;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      outline:none;
+      transition: border-color .15s ease, background .15s ease, transform .12s ease;
+    }
+    textarea{min-height: 88px; resize: vertical}
+    input::placeholder, textarea::placeholder{color: rgba(255,255,255,.40)}
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(216,255,90,.45);
+      background: rgba(0,0,0,.28);
+    }
+    .two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:.75rem;
+    }
+    .actions{
+      display:flex;
+      gap:.6rem;
+      flex-wrap:wrap;
+      margin-top:.5rem;
+    }
+
+    .divider{
+      height:1px; background: rgba(255,255,255,.10);
+      margin: 1rem 0;
+    }
+
+    .listTop{
+      display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+      margin-bottom: .65rem;
+    }
+    .listTop h2{
+      margin:0;
+      font-size: 1.05rem;
+      letter-spacing:-.2px;
+      font-family: "Fraunces", serif;
+    }
+    .searchRow{
+      display:flex; gap:.6rem; align-items:center;
+    }
+    .searchRow input{padding:.65rem .8rem; border-radius: 999px}
+    .clientList{
+      display:grid;
+      gap:.55rem;
+    }
+
+    .clientItem{
+      text-align:left;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:.8rem;
+      padding:.75rem .85rem;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .clientItem:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.14);
+    }
+    .clientItem[aria-selected="true"]{
+      background:
+        radial-gradient(700px 220px at 20% 0%, rgba(216,255,90,.12), transparent 62%),
+        radial-gradient(700px 220px at 90% 0%, rgba(124,233,255,.10), transparent 62%),
+        rgba(255,255,255,.06);
+      border-color: rgba(216,255,90,.22);
+    }
+    .clientItem strong{
+      display:block;
+      font-weight:750;
+      letter-spacing:.15px;
+    }
+    .clientItem small{
+      display:block;
+      color: var(--muted);
+      margin-top:.18rem;
+      line-height:1.25;
+    }
+    .chip{
+      font-family: var(--mono);
+      font-size:.78rem;
+      color: rgba(255,255,255,.78);
+      padding:.24rem .5rem;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.20);
+      white-space:nowrap;
+      margin-top:.05rem;
+    }
+
+    .contentHead{
+      padding: 1rem 1.1rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;
+      background:
+        radial-gradient(900px 260px at 10% 10%, rgba(216,255,90,.12), transparent 55%),
+        radial-gradient(800px 240px at 85% 25%, rgba(124,233,255,.10), transparent 55%),
+        rgba(0,0,0,.12);
+    }
+    .who{
+      display:flex; flex-direction:column; gap:.25rem;
+      min-width: 0;
+    }
+    .who .title{
+      display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
+      min-width: 0;
+    }
+    .who .title h2{
+      font-family:"Fraunces", serif;
+      margin:0;
+      font-size: clamp(1.2rem, 1.7vw, 1.55rem);
+      letter-spacing:-.25px;
+      line-height:1.08;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 58ch;
+    }
+    .who .meta{
+      color: var(--muted);
+      font-size: .96rem;
+      display:flex; gap: .7rem; flex-wrap:wrap;
+    }
+    .contentBody{padding: 1rem 1.1rem 1.1rem}
+
+    .bento{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 1rem;
+      align-items:start;
+    }
+
+    .box{
+      border-radius: var(--radius-xl);
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    .boxHead{
+      padding: .95rem 1rem .85rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+      background: rgba(0,0,0,.14);
+    }
+    .boxHead h3{
+      margin:0;
+      font-size: 1.02rem;
+      letter-spacing:-.15px;
+      font-family:"Fraunces", serif;
+    }
+    .boxBody{padding: 1rem}
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: .95rem;
+    }
+    thead th{
+      text-align:left;
+      color: rgba(255,255,255,.78);
+      font-weight:700;
+      font-size:.88rem;
+      letter-spacing:.18px;
+      padding: .6rem .5rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      font-family: var(--mono);
+    }
+    tbody td{
+      padding: .7rem .5rem;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      vertical-align: top;
+      color: rgba(255,255,255,.86);
+    }
+    tbody tr:hover td{background: rgba(255,255,255,.03)}
+    .tdMuted{color: var(--muted)}
+    .tdRight{text-align:right}
+    .rowActions{
+      display:flex; gap:.45rem; justify-content:flex-end; flex-wrap:wrap;
+    }
+
+    .iconBtn{
+      appearance:none; border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: .45rem .6rem;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      font-weight:800;
+      line-height:1;
+    }
+    .iconBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18)}
+    .iconBtn:active{transform: translateY(0) scale(.98)}
+    .iconBtn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.22);
+    }
+    .iconBtn.danger:hover{background: rgba(255,107,107,.18)}
+
+    .totals{
+      display:grid;
+      gap:.65rem;
+    }
+    .metric{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;
+      padding: .75rem .85rem;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .metric b{display:block; font-size:.92rem; letter-spacing:.15px}
+    .metric small{display:block; color: var(--muted); margin-top:.15rem}
+    .metric .val{
+      font-family: var(--mono);
+      font-weight:800;
+      letter-spacing:.3px;
+      white-space:nowrap;
+    }
+    .metric.accent{
+      background:
+        radial-gradient(700px 220px at 25% 0%, rgba(216,255,90,.12), transparent 62%),
+        radial-gradient(700px 220px at 90% 0%, rgba(124,233,255,.10), transparent 62%),
+        rgba(255,255,255,.05);
+      border-color: rgba(216,255,90,.20);
+    }
+
+    .note{
+      color: var(--muted);
+      font-size: .95rem;
+      line-height: 1.45;
+    }
+
+    dialog{
+      width:min(860px, calc(100% - 1.2rem));
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      background:
+        radial-gradient(900px 320px at 18% 10%, rgba(216,255,90,.12), transparent 60%),
+        radial-gradient(900px 320px at 82% 10%, rgba(124,233,255,.10), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      color: var(--text);
+      box-shadow: var(--shadow);
+      padding:0;
+      overflow:hidden;
+    }
+    dialog::backdrop{
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(6px);
+    }
+    .modalHead{
+      padding: 1rem 1.1rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; align-items:center; justify-content:space-between; gap:1rem;
+      background: rgba(0,0,0,.16);
+    }
+    .modalHead h3{
+      margin:0;
+      font-family:"Fraunces", serif;
+      letter-spacing:-.2px;
+    }
+    .modalBody{padding: 1rem 1.1rem 1.1rem}
+    .modalActions{
+      display:flex; gap:.6rem; flex-wrap:wrap; justify-content:flex-end;
+      padding: 0 1.1rem 1.1rem;
+    }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.72);
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.88);
+      padding:.7rem .9rem;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow2);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .22s ease, transform .22s ease;
+      z-index: 999;
+      font-size:.95rem;
+      max-width: min(520px, calc(100% - 1.2rem));
+      text-align:center;
+    }
+    .toast.show{opacity:1; transform: translateX(-50%) translateY(-4px)}
+
+    .reveal{
+      opacity:0;
+      transform: translateY(14px);
+      animation: rise .7s ease forwards;
+    }
+    @keyframes rise{to{opacity:1; transform: translateY(0)}}
+    .stagger > *{opacity:0; transform: translateY(14px)}
+    .stagger.in > *{animation: rise .7s ease forwards}
+    .stagger.in > *:nth-child(1){animation-delay:.02s}
+    .stagger.in > *:nth-child(2){animation-delay:.10s}
+    .stagger.in > *:nth-child(3){animation-delay:.18s}
+    .stagger.in > *:nth-child(4){animation-delay:.26s}
+    .stagger.in > *:nth-child(5){animation-delay:.34s}
+
+    @media (max-width: 1060px){
+      .layout{grid-template-columns: 1fr}
+      .brand{min-width:auto}
+      .pill{display:none}
+    }
+    @media (max-width: 740px){
+      .bento{grid-template-columns: 1fr}
+      .two{grid-template-columns: 1fr}
+      thead{display:none}
+      table, tbody, tr, td{display:block; width:100%}
+      tbody td{border-bottom:0; padding:.4rem 0}
+      tbody tr{
+        padding:.75rem .85rem;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius: 16px;
+        background: rgba(255,255,255,.04);
+        margin-bottom:.6rem;
+      }
+      .tdRight{text-align:left}
+      .rowActions{justify-content:flex-start; margin-top:.45rem}
+      tbody tr:hover td{background: transparent}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+      .stagger > *{opacity:1; transform:none}
+      .toast{transition:none}
+    }
+
+    @media print{
+      header, .sidebar, .noPrint, dialog, .toast, .gridpaper{display:none !important}
+      body{background:#fff; color:#111}
+      main{padding:0}
+      .wrap{width:100%; margin:0}
+      .panel, .box{box-shadow:none; border:1px solid #ddd; background:#fff}
+      .contentHead{background:#fff}
+      .metric{border:1px solid #ddd; background:#fff}
+      table{font-size: 11pt}
+      thead th{color:#111; font-family: var(--mono)}
+      tbody td{color:#111}
+      .tdMuted{color:#444}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="gridpaper" aria-hidden="true"></div>
+
+  <header class="noPrint">
+    <div class="wrap topbar">
+      <a class="brand" href="#" onclick="return false;">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <strong>Ofício</strong>
+          <span>Orçamentos • Clientes • Serviços • PDF/Impressão</span>
+        </div>
+      </a>
+
+      <div class="rightbar">
+        <div class="pill" title="Armazena no seu navegador (localStorage). Sem servidor.">
+          <span class="dot" aria-hidden="true"></span>
+          <span>Offline • Salvo no navegador</span>
+        </div>
+        <button class="btn ghost small" id="btnExport" type="button">Exportar</button>
+        <button class="btn ghost small" id="btnImport" type="button">Importar</button>
+        <button class="btn primary" id="btnNewQuote" type="button">Novo orçamento <span class="kbd">N</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap layout">
+      <!-- SIDEBAR -->
+      <aside class="panel sidebar reveal" style="animation-delay:.05s">
+        <div class="panelHead">
+          <div class="panelHeadRow">
+            <div>
+              <h1>Clientes &amp; Orçamentos</h1>
+              <p class="sub">Cadastre clientes, crie orçamentos e adicione serviços por cliente com inclusão/edição/exclusão.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebarBody">
+          <form id="clientForm" class="stagger" data-reveal>
+            <div class="field">
+              <div class="labelRow">
+                <label for="cNome">Novo cliente</label>
+                <span class="hint">Obrigatório</span>
+              </div>
+              <input id="cNome" type="text" placeholder="Ex.: João da Silva / Empresa XYZ" required />
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label for="cDoc">CPF/CNPJ</label>
+                <input id="cDoc" type="text" placeholder="Opcional" />
+              </div>
+              <div class="field">
+                <label for="cTelefone">Telefone</label>
+                <input id="cTelefone" type="tel" placeholder="(xx) xxxxx-xxxx" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label for="cEmail">E-mail</label>
+                <input id="cEmail" type="email" placeholder="Opcional" />
+              </div>
+              <div class="field">
+                <label for="cCidade">Cidade</label>
+                <input id="cCidade" type="text" placeholder="Opcional" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="cEndereco">Endereço</label>
+              <input id="cEndereco" type="text" placeholder="Rua, número, bairro (opcional)" />
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" type="submit">Cadastrar cliente</button>
+              <button class="btn ghost" type="button" id="btnResetClient">Limpar</button>
+            </div>
+          </form>
+
+          <div class="divider"></div>
+
+          <div class="listTop">
+            <h2>Lista de clientes</h2>
+            <span class="chip" id="clientCount">0</span>
+          </div>
+
+          <div class="searchRow">
+            <input id="clientSearch" type="text" placeholder="Buscar cliente..." aria-label="Buscar cliente" />
+            <button class="btn ghost small" id="btnClearSearch" type="button">Limpar</button>
+          </div>
+
+          <div class="divider" style="margin:.85rem 0 .75rem"></div>
+
+          <div class="clientList" id="clientList" role="listbox" aria-label="Clientes"></div>
+
+          <div class="divider"></div>
+
+          <div class="actions">
+            <button class="btn danger small" id="btnDeleteClient" type="button" title="Remove o cliente e seus orçamentos">Excluir cliente</button>
+            <button class="btn ghost small" id="btnEditClient" type="button">Editar cliente</button>
+          </div>
+
+          <p class="note" style="margin:.9rem 0 0;">
+            Dica: Atalhos <span class="kbd">N</span> novo orçamento • <span class="kbd">Ctrl</span>+<span class="kbd">P</span> imprimir.
+          </p>
+        </div>
+      </aside>
+
+      <!-- CONTENT -->
+      <section class="panel reveal" style="animation-delay:.10s">
+        <div class="contentHead">
+          <div class="who">
+            <div class="title">
+              <h2 id="activeTitle">Selecione um cliente</h2>
+              <span class="chip" id="activeClientChip" hidden></span>
+            </div>
+            <div class="meta" id="activeMeta">
+              <span>Cadastre ou selecione um cliente na lateral.</span>
+            </div>
+          </div>
+
+          <div class="actions noPrint" style="margin:0; justify-content:flex-end;">
+            <button class="btn ghost small" id="btnNewService" type="button" disabled>Adicionar serviço</button>
+            <button class="btn ghost small" id="btnPrint" type="button" disabled>Imprimir / PDF</button>
+          </div>
+        </div>
+
+        <div class="contentBody">
+          <div class="bento">
+            <!-- Services -->
+            <article class="box">
+              <div class="boxHead">
+                <h3>Serviços do orçamento</h3>
+                <div class="chip" id="quoteChip">—</div>
+              </div>
+              <div class="boxBody">
+                <div class="note" id="emptyState" style="margin:0;">
+                  Crie um orçamento para o cliente e adicione serviços como: solda, serralheria, elétrica e informática.
+                </div>
+
+                <div id="servicesWrap" hidden>
+                  <table aria-label="Tabela de serviços">
+                    <thead>
+                      <tr>
+                        <th style="width: 12%">Área</th>
+                        <th>Descrição</th>
+                        <th style="width: 10%" class="tdRight">Qtd</th>
+                        <th style="width: 12%" class="tdRight">Valor un.</th>
+                        <th style="width: 12%" class="tdRight">%</th>
+                        <th style="width: 14%" class="tdRight">Valor Mat.</th>
+                        <th style="width: 14%" class="tdRight">Descrição Mat.</th>
+                        <th style="width: 14%" class="tdRight">Subtotal</th>
+                        <th style="width: 14%" class="tdRight">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="servicesTbody"></tbody>
+                  </table>
+
+                  <div class="divider"></div>
+
+                  <div class="two">
+                    <div class="field" style="margin:0;">
+                      <label for="quoteObs">Observações do orçamento</label>
+                      <textarea id="quoteObs" placeholder="Ex.: Prazo de execução, condições do local, materiais inclusos/exclusos..."></textarea>
+                      <div class="hint">Salva automaticamente.</div>
+                    </div>
+                    <div class="field" style="margin:0;">
+                      <label for="quoteTerms">Condições / Garantia</label>
+                      <textarea id="quoteTerms" placeholder="Ex.: Validade 7 dias. Garantia 90 dias. Pagamento: 50% entrada + 50% entrega."></textarea>
+                      <div class="hint">Salva automaticamente.</div>
+                    </div>
+                  </div>
+
+                  <div class="divider"></div>
+
+                  <div class="actions noPrint" style="justify-content: space-between; width:100%;">
+                    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+                      <button class="btn ghost small" id="btnDuplicateQuote" type="button">Duplicar orçamento</button>
+                      <button class="btn danger small" id="btnDeleteQuote" type="button">Excluir orçamento</button>
+                    </div>
+                    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+                      <button class="btn ghost small" id="btnMarkSent" type="button">Marcar como enviado</button>
+                      <button class="btn primary small" id="btnFinalize" type="button">Finalizar / Fechar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Totals -->
+            <aside class="box">
+              <div class="boxHead">
+                <h3>Resumo</h3>
+                <div class="chip" id="statusChip">—</div>
+              </div>
+              <div class="boxBody">
+                <div class="totals">
+                  <div class="metric accent">
+                    <div>
+                      <b>Total do orçamento</b>
+                      <small>Somatório de serviços</small>
+                    </div>
+                    <div class="val" id="totalVal">R$ 0,00</div>
+                  </div>
+
+                  <div class="metric">
+                    <div>
+                      <b>Desconto</b>
+                      <small>Valor fixo (R$)</small>
+                    </div>
+                    <div class="val" style="min-width: 140px;">
+                      <input id="discountInput" type="number" inputmode="decimal" step="0.01" min="0" value="0" style="text-align:right; padding:.55rem .7rem; border-radius: 12px;" disabled>
+                    </div>
+                  </div>
+
+                  <div class="metric">
+                    <div>
+                      <b>Taxa / Deslocamento</b>
+                      <small>Valor fixo (R$)</small>
+                    </div>
+                    <div class="val" style="min-width: 140px;">
+                      <input id="feeInput" type="number" inputmode="decimal" step="0.01" min="0" value="0" style="text-align:right; padding:.55rem .7rem; border-radius: 12px;" disabled>
+                    </div>
+                  </div>
+
+                  <div class="metric">
+                    <div>
+                      <b>Total final</b>
+                      <small>Com desconto + taxa</small>
+                    </div>
+                    <div class="val" id="finalVal">R$ 0,00</div>
+                  </div>
+
+                  <div class="divider" style="margin:.2rem 0;"></div>
+
+                  <div class="metric">
+                    <div>
+                      <b>Validade</b>
+                      <small>Data limite</small>
+                    </div>
+                    <div class="val" style="min-width: 160px;">
+                      <input id="validUntil" type="date" style="text-align:right; padding:.55rem .7rem; border-radius: 12px;" disabled>
+                    </div>
+                  </div>
+
+                  <div class="metric">
+                    <div>
+                      <b>Forma de pagamento</b>
+                      <small>Ex.: PIX, dinheiro, cartão</small>
+                    </div>
+                    <div class="val" style="min-width: 180px;">
+                      <input id="paymentInput" type="text" placeholder="PIX" style="text-align:right; padding:.55rem .7rem; border-radius: 12px;" disabled>
+                    </div>
+                  </div>
+
+                  <div class="divider" style="margin:.2rem 0;"></div>
+
+                  <p class="note" id="summaryNote" style="margin:0;">
+                    Selecione um cliente e crie um orçamento para habilitar os campos.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="divider" style="margin: 1.2rem 0;"></div>
+
+          <!-- History (list/gallery) -->
+          <article class="box">
+            <div class="boxHead">
+              <h3>Histórico de orçamentos do cliente</h3>
+              <div class="actions noPrint" style="margin:0;">
+                <button class="btn ghost small" id="btnSwitchQuote" type="button" disabled>Trocar orçamento</button>
+              </div>
+            </div>
+            <div class="boxBody">
+              <div class="note" id="historyEmpty" style="margin:0;">Sem orçamentos ainda.</div>
+              <div id="historyWrap" hidden>
+                <table aria-label="Histórico de orçamentos">
+                  <thead>
+                    <tr>
+                      <th style="width: 18%">Número</th>
+                      <th style="width: 22%">Data</th>
+                      <th style="width: 22%">Status</th>
+                      <th class="tdRight">Total final</th>
+                      <th style="width: 22%" class="tdRight">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <dialog id="dlgClient">
+    <div class="modalHead">
+      <h3 id="dlgClientTitle">Editar cliente</h3>
+      <button class="iconBtn" type="button" onclick="document.getElementById('dlgClient').close()">✕</button>
+    </div>
+    <form method="dialog" id="dlgClientForm">
+      <div class="modalBody">
+        <div class="field">
+          <label for="eNome">Nome</label>
+          <input id="eNome" type="text" required>
+        </div>
+        <div class="two">
+          <div class="field">
+            <label for="eDoc">CPF/CNPJ</label>
+            <input id="eDoc" type="text">
+          </div>
+          <div class="field">
+            <label for="eTelefone">Telefone</label>
+            <input id="eTelefone" type="tel">
+          </div>
+        </div>
+        <div class="two">
+          <div class="field">
+            <label for="eEmail">E-mail</label>
+            <input id="eEmail" type="email">
+          </div>
+          <div class="field">
+            <label for="eCidade">Cidade</label>
+            <input id="eCidade" type="text">
+          </div>
+        </div>
+        <div class="field">
+          <label for="eEndereco">Endereço</label>
+          <input id="eEndereco" type="text">
+        </div>
+      </div>
+      <div class="modalActions">
+        <button class="btn ghost" value="cancel" type="button" onclick="document.getElementById('dlgClient').close()">Cancelar</button>
+        <button class="btn primary" value="ok" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgQuote">
+    <div class="modalHead">
+      <h3 id="dlgQuoteTitle">Novo orçamento</h3>
+      <button class="iconBtn" type="button" onclick="document.getElementById('dlgQuote').close()">✕</button>
+    </div>
+    <form method="dialog" id="dlgQuoteForm">
+      <div class="modalBody">
+        <div class="two">
+          <div class="field">
+            <label for="qNumber">Número do orçamento</label>
+            <input id="qNumber" type="text" placeholder="Ex.: 2026-001" required>
+            <div class="hint">Sugestão automática. Você pode editar.</div>
+          </div>
+          <div class="field">
+            <label for="qDate">Data</label>
+            <input id="qDate" type="date" required>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label for="qValidUntil">Validade</label>
+            <input id="qValidUntil" type="date" required>
+          </div>
+          <div class="field">
+            <label for="qPayment">Forma de pagamento</label>
+            <input id="qPayment" type="text" placeholder="PIX / Cartão / Dinheiro" required>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label for="qDiscount">Desconto (R$)</label>
+            <input id="qDiscount" type="number" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label for="qFee">Taxa/Deslocamento (R$)</label>
+            <input id="qFee" type="number" step="0.01" min="0" value="0">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="qTitle">Título/Assunto</label>
+          <input id="qTitle" type="text" placeholder="Ex.: Portão + instalação elétrica + formatação" />
+        </div>
+      </div>
+
+      <div class="modalActions">
+        <button class="btn ghost" value="cancel" type="button" onclick="document.getElementById('dlgQuote').close()">Cancelar</button>
+        <button class="btn primary" value="ok" type="submit">Criar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgService">
+    <div class="modalHead">
+      <h3 id="dlgServiceTitle">Adicionar serviço</h3>
+      <button class="iconBtn" type="button" onclick="document.getElementById('dlgService').close()">✕</button>
+    </div>
+    <form method="dialog" id="dlgServiceForm">
+      <div class="modalBody">
+        <div class="two">
+          <div class="field">
+            <label for="sArea">Área</label>
+            <select id="sArea" required>
+              <option value="Solda">Solda</option>
+              <option value="Serralheria">Serralheria</option>
+              <option value="Elétrica">Elétrica</option>
+              <option value="Informática">Informática</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sQtd">Quantidade</label>
+            <input id="sQtd" type="number" step="0.01" min="0.01" value="1" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="sDesc">Descrição</label>
+          <textarea id="sDesc" placeholder="Ex.: Solda MIG em estrutura, troca de disjuntor, instalação de tomada, limpeza + formatação..." required></textarea>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label for="sUnit">Valor unitário (R$)</label>
+            <input id="sUnit" type="number" step="0.01" min="0" value="0" required>
+          </div>
+          <div class="field">
+            <label for="sMaterial">Materiais (opcional)</label>
+            <input id="sMaterial" type="text" placeholder="Ex.: eletrodo, cabo 2,5mm, SSD..." />
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label for="sPercent">Valor a cobrar (%)</label>
+            <input id="sPercent" type="number" step="0.01" min="0" value="0" />
+          </div>
+          <div class="field">
+            <label for="sMatValue">Valor material a comprar (R$)</label>
+            <input id="sMatValue" type="number" step="0.01" min="0" value="0" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="sMatDesc">Descrição do material</label>
+          <input id="sMatDesc" type="text" placeholder="Ex.: eletrodo, cabo 2,5mm, SSD..." />
+        </div>
+
+        <div class="field">
+          <label for="sObs">Observação (opcional)</label>
+          <input id="sObs" type="text" placeholder="Ex.: cliente fornece material / inclui deslocamento / urgente..." />
+        </div>
+      </div>
+
+      <div class="modalActions">
+        <button class="btn ghost" value="cancel" type="button" onclick="document.getElementById('dlgService').close()">Cancelar</button>
+        <button class="btn primary" value="ok" type="submit" id="btnServiceSave">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgSwitchQuote">
+    <div class="modalHead">
+      <h3>Trocar orçamento</h3>
+      <button class="iconBtn" type="button" onclick="document.getElementById('dlgSwitchQuote').close()">✕</button>
+    </div>
+    <form method="dialog" id="dlgSwitchQuoteForm">
+      <div class="modalBody">
+        <div class="field">
+          <label for="switchQuoteSelect">Selecione</label>
+          <select id="switchQuoteSelect"></select>
+          <div class="hint">Você pode alternar entre orçamentos do mesmo cliente.</div>
+        </div>
+      </div>
+      <div class="modalActions">
+        <button class="btn ghost" type="button" onclick="document.getElementById('dlgSwitchQuote').close()">Cancelar</button>
+        <button class="btn primary" type="submit">Abrir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input id="fileImport" type="file" accept="application/json" hidden />
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORE_KEY = "oficio_orcamentos_v1";
+
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    const toast = $("#toast");
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.classList.remove("show"), 1700);
+    }
+
+    function uid(prefix="id"){
+      return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+    }
+
+    function moneyBR(v){
+      const n = Number(v || 0);
+      return n.toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+    }
+
+    function clampNum(n, min, max){
+      n = Number(n);
+      if(Number.isNaN(n)) n = 0;
+      return Math.min(max, Math.max(min, n));
+    }
+
+    function isoToday(){
+      const d = new Date();
+      const tz = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+      return tz.toISOString().slice(0,10);
+    }
+
+    function addDaysISO(days){
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      const tz = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+      return tz.toISOString().slice(0,10);
+    }
+
+    function loadStore(){
+      const empty = { clients: [], quotes: [], ui: { activeClientId: null, activeQuoteId: null } };
+      try{
+        const raw = localStorage.getItem(STORE_KEY);
+        if(!raw) return empty;
+        const parsed = JSON.parse(raw);
+        if(!parsed || !Array.isArray(parsed.clients) || !Array.isArray(parsed.quotes)) return empty;
+        parsed.ui = parsed.ui || { activeClientId: null, activeQuoteId: null };
+        return parsed;
+      }catch{
+        return empty;
+      }
+    }
+
+    function saveStore(store){
+      localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    }
+
+    let store = loadStore();
+
+    // DOM refs
+    const clientForm = $("#clientForm");
+    const clientList = $("#clientList");
+    const clientCount = $("#clientCount");
+    const clientSearch = $("#clientSearch");
+    const btnClearSearch = $("#btnClearSearch");
+
+    const btnDeleteClient = $("#btnDeleteClient");
+    const btnEditClient = $("#btnEditClient");
+
+    const activeTitle = $("#activeTitle");
+    const activeClientChip = $("#activeClientChip");
+    const activeMeta = $("#activeMeta");
+
+    const btnNewQuote = $("#btnNewQuote");
+    const btnNewService = $("#btnNewService");
+    const btnPrint = $("#btnPrint");
+
+    const quoteChip = $("#quoteChip");
+    const statusChip = $("#statusChip");
+    const emptyState = $("#emptyState");
+    const servicesWrap = $("#servicesWrap");
+    const servicesTbody = $("#servicesTbody");
+
+    const totalVal = $("#totalVal");
+    const finalVal = $("#finalVal");
+
+    const discountInput = $("#discountInput");
+    const feeInput = $("#feeInput");
+    const validUntil = $("#validUntil");
+    const paymentInput = $("#paymentInput");
+    const quoteObs = $("#quoteObs");
+    const quoteTerms = $("#quoteTerms");
+
+    const summaryNote = $("#summaryNote");
+
+    const btnDuplicateQuote = $("#btnDuplicateQuote");
+    const btnDeleteQuote = $("#btnDeleteQuote");
+    const btnMarkSent = $("#btnMarkSent");
+    const btnFinalize = $("#btnFinalize");
+
+    const btnSwitchQuote = $("#btnSwitchQuote");
+    const historyEmpty = $("#historyEmpty");
+    const historyWrap = $("#historyWrap");
+    const historyTbody = $("#historyTbody");
+
+    const btnExport = $("#btnExport");
+    const btnImport = $("#btnImport");
+    const fileImport = $("#fileImport");
+
+    // dialogs
+    const dlgClient = $("#dlgClient");
+    const dlgClientForm = $("#dlgClientForm");
+    const eNome = $("#eNome");
+    const eDoc = $("#eDoc");
+    const eTelefone = $("#eTelefone");
+    const eEmail = $("#eEmail");
+    const eCidade = $("#eCidade");
+    const eEndereco = $("#eEndereco");
+
+    const dlgQuote = $("#dlgQuote");
+    const dlgQuoteForm = $("#dlgQuoteForm");
+    const qNumber = $("#qNumber");
+    const qDate = $("#qDate");
+    const qValidUntil = $("#qValidUntil");
+    const qPayment = $("#qPayment");
+    const qDiscount = $("#qDiscount");
+    const qFee = $("#qFee");
+    const qTitle = $("#qTitle");
+
+    const dlgService = $("#dlgService");
+    const dlgServiceForm = $("#dlgServiceForm");
+    const dlgServiceTitle = $("#dlgServiceTitle");
+    const sArea = $("#sArea");
+    const sQtd = $("#sQtd");
+    const sDesc = $("#sDesc");
+    const sUnit = $("#sUnit");
+    const sMaterial = $("#sMaterial");
+    const sPercent = $("#sPercent");
+    const sMatValue = $("#sMatValue");
+    const sMatDesc = $("#sMatDesc");
+    const sObs = $("#sObs");
+    const btnServiceSave = $("#btnServiceSave");
+
+    const dlgSwitchQuote = $("#dlgSwitchQuote");
+    const dlgSwitchQuoteForm = $("#dlgSwitchQuoteForm");
+    const switchQuoteSelect = $("#switchQuoteSelect");
+
+    // Derived getters
+    function getActiveClient(){
+      return store.clients.find(c => c.id === store.ui.activeClientId) || null;
+    }
+    function getActiveQuote(){
+      return store.quotes.find(q => q.id === store.ui.activeQuoteId) || null;
+    }
+    function getQuotesByClient(clientId){
+      return store.quotes
+        .filter(q => q.clientId === clientId)
+        .sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.criadoEm||"").localeCompare(a.criadoEm||""));
+    }
+
+    function quoteTotals(quote){
+      const subtotal = (quote.services || []).reduce((acc, s)=>{
+        const pct = Number(s.percent || 0);
+        const matVal = Number(s.matValue || 0);
+        return acc + ((Number(s.qtd)||0) * (Number(s.unit)||0) * (1 + pct/100) + matVal);
+      }, 0);
+      const discount = clampNum(quote.discount || 0, 0, 1e12);
+      const fee = clampNum(quote.fee || 0, 0, 1e12);
+      const final = Math.max(0, subtotal - discount + fee);
+      return { subtotal, discount, fee, final };
+    }
+
+    function nextQuoteNumber(){
+      const year = new Date().getFullYear();
+      const prefix = `${year}-`;
+      const sameYear = store.quotes
+        .map(q => q.number || "")
+        .filter(n => n.startsWith(prefix))
+        .map(n => parseInt(n.slice(prefix.length), 10))
+        .filter(n => Number.isFinite(n));
+      const next = (sameYear.length ? Math.max(...sameYear) : 0) + 1;
+      return `${year}-${String(next).padStart(3,"0")}`;
+    }
+
+    // Rendering functions
+    function renderClientList(){
+      const q = (clientSearch.value || "").trim().toLowerCase();
+      const clients = store.clients
+        .slice()
+        .sort((a,b)=> a.nome.localeCompare(b.nome))
+        .filter(c => !q || (c.nome||"").toLowerCase().includes(q) || (c.doc||"").toLowerCase().includes(q));
+
+      clientCount.textContent = String(store.clients.length);
+
+      clientList.innerHTML = "";
+      if(clients.length === 0){
+        const div = document.createElement("div");
+        div.className = "note";
+        div.textContent = q ? "Nenhum cliente encontrado para esta busca." : "Nenhum cliente cadastrado ainda.";
+        clientList.appendChild(div);
+        return;
+      }
+
+      for(const c of clients){
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "clientItem";
+        btn.role = "option";
+        btn.setAttribute("aria-selected", String(c.id === store.ui.activeClientId));
+        const chipText = (getQuotesByClient(c.id).length) + " orç.";
+        btn.innerHTML = `
+          <div style="min-width:0;">
+            <strong title="${escapeHtml(c.nome)}">${escapeHtml(c.nome)}</strong>
+            <small>${escapeHtml([c.telefone, c.cidade].filter(Boolean).join(" • ") || "—")}</small>
+          </div>
+          <div class="chip">${chipText}</div>
+        `;
+        btn.addEventListener("click", ()=>{
+          store.ui.activeClientId = c.id;
+          const qs = getQuotesByClient(c.id);
+          store.ui.activeQuoteId = qs.length ? qs[0].id : null;
+          saveStore(store);
+          renderAll();
+        });
+        clientList.appendChild(btn);
+      }
+    }
+
+    function renderActiveHeader(){
+      const client = getActiveClient();
+      const quote = getActiveQuote();
+
+      if(!client){
+        activeTitle.textContent = "Selecione um cliente";
+        activeClientChip.hidden = true;
+        activeMeta.innerHTML = `<span>Cadastre ou selecione um cliente na lateral.</span>`;
+        btnNewService.disabled = true;
+        btnPrint.disabled = true;
+        btnSwitchQuote.disabled = true;
+        return;
+      }
+
+      activeTitle.textContent = client.nome;
+      activeClientChip.hidden = false;
+      activeClientChip.textContent = (client.doc || "Sem documento");
+
+      const bits = [];
+      if(client.telefone) bits.push(client.telefone);
+      if(client.email) bits.push(client.email);
+      if(client.cidade) bits.push(client.cidade);
+      if(client.endereco) bits.push(client.endereco);
+      activeMeta.innerHTML = bits.length ? bits.map(x=>`<span>${escapeHtml(x)}</span>`).join("") : `<span>Cliente sem detalhes adicionais.</span>`;
+
+      btnNewService.disabled = !quote;
+      btnPrint.disabled = !quote;
+      btnSwitchQuote.disabled = getQuotesByClient(client.id).length < 2;
+    }
+
+    function renderQuoteArea(){
+      const client = getActiveClient();
+      const quote = getActiveQuote();
+
+      if(!client){
+        quoteChip.textContent = "—";
+        statusChip.textContent = "—";
+        emptyState.hidden = false;
+        servicesWrap.hidden = true;
+        summaryNote.textContent = "Selecione um cliente e crie um orçamento para habilitar os campos.";
+        setQuoteInputsEnabled(false);
+        clearServicesTable();
+        renderHistory();
+        return;
+      }
+
+      if(!quote){
+        quoteChip.textContent = "Sem orçamento";
+        statusChip.textContent = "—";
+        emptyState.hidden = false;
+        servicesWrap.hidden = true;
+        summaryNote.textContent = "Este cliente ainda não tem orçamento. Clique em “Novo orçamento”.";
+        setQuoteInputsEnabled(false);
+        clearServicesTable();
+        renderHistory();
+        return;
+      }
+
+      quoteChip.textContent = `#${quote.number}`;
+      statusChip.textContent = quote.status;
+
+      emptyState.hidden = true;
+      servicesWrap.hidden = false;
+      setQuoteInputsEnabled(true);
+
+      discountInput.value = Number(quote.discount || 0).toFixed(2);
+      feeInput.value = Number(quote.fee || 0).toFixed(2);
+      validUntil.value = quote.validUntil || "";
+      paymentInput.value = quote.payment || "";
+      quoteObs.value = quote.obs || "";
+      quoteTerms.value = quote.terms || "";
+
+      servicesTbody.innerHTML = "";
+      for(const s of (quote.services || [])){
+        const pct = Number(s.percent || 0);
+        const matVal = Number(s.matValue || 0);
+        const sub = (Number(s.qtd)||0) * (Number(s.unit)||0) * (1 + pct/100) + matVal;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="chip">${escapeHtml(s.area)}</span></td>
+          <td>
+            <div style="font-weight:750; letter-spacing:.1px;">${escapeHtml(s.desc)}</div>
+            <div class="tdMuted" style="margin-top:.25rem; line-height:1.3;">
+              ${escapeHtml([s.material ? ("Materiais: " + s.material) : "", s.matDesc ? ("Descrição mat.: " + s.matDesc) : "", s.obs ? ("Obs.: " + s.obs) : "", pct > 0 ? `+ ${pct.toFixed(2)}% cobrança` : "", matVal > 0 ? `+ R$ ${matVal.toFixed(2)} material` : ""].filter(Boolean).join(" • ") || "—")}
+            </div>
+          </td>
+          <td class="tdRight">${fmtQty(s.qtd)}</td>
+          <td class="tdRight">${moneyBR(s.unit)}</td>
+          <td class="tdRight">${pct.toFixed(2)}%</td>
+          <td class="tdRight">${moneyBR(matVal)}</td>
+          <td class="tdRight">${escapeHtml(s.matDesc || "")}</td>
+          <td class="tdRight"><span style="font-family:var(--mono); font-weight:850;">${moneyBR(sub)}</span></td>
+          <td class="tdRight">
+            <div class="rowActions noPrint">
+              <button class="iconBtn" type="button" title="Editar">✎</button>
+              <button class="iconBtn danger" type="button" title="Excluir">🗑</button>
+            </div>
+          </td>
+        `;
+
+        const [btnEdit, btnDel] = $$(".rowActions button", tr);
+        btnEdit.addEventListener("click", ()=> openServiceDialog("edit", s.id));
+        btnDel.addEventListener("click", ()=>{
+          if(!confirm("Excluir este serviço do orçamento?")) return;
+          deleteService(s.id);
+        });
+
+        servicesTbody.appendChild(tr);
+      }
+
+      const t = quoteTotals(quote);
+      totalVal.textContent = moneyBR(t.subtotal);
+      finalVal.textContent = moneyBR(t.final);
+
+      const locked = quote.status === "FECHADO";
+      btnNewService.disabled = locked;
+      discountInput.disabled = locked;
+      feeInput.disabled = locked;
+      validUntil.disabled = locked;
+      paymentInput.disabled = locked;
+      quoteObs.disabled = locked;
+      quoteTerms.disabled = locked;
+
+      btnDeleteQuote.disabled = false;
+      btnDuplicateQuote.disabled = false;
+      btnMarkSent.disabled = locked;
+      btnFinalize.disabled = locked;
+
+      summaryNote.textContent = locked
+        ? "Orçamento fechado: edição bloqueada. Duplique para criar uma nova versão."
+        : "Edite valores, adicione serviços e finalize quando estiver pronto.";
+
+      renderHistory();
+    }
+
+    function renderHistory(){
+      const client = getActiveClient();
+      historyTbody.innerHTML = "";
+      if(!client){
+        historyEmpty.hidden = false;
+        historyWrap.hidden = true;
+        return;
+      }
+      const quotes = getQuotesByClient(client.id);
+      if(quotes.length === 0){
+        historyEmpty.hidden = false;
+        historyWrap.hidden = true;
+        return;
+      }
+      historyEmpty.hidden = true;
+      historyWrap.hidden = false;
+
+      for(const q of quotes){
+        const t = quoteTotals(q);
+        const isActive = q.id === store.ui.activeQuoteId;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="chip">${escapeHtml(q.number)}</span>${isActive ? ` <span class="chip" style="border-color: rgba(216,255,90,.25);">ABERTO</span>` : ""}</td>
+          <td class="tdMuted">${escapeHtml(q.date || "—")}</td>
+          <td><span class="chip">${escapeHtml(q.status)}</span></td>
+          <td class="tdRight"><span style="font-family:var(--mono); font-weight:850;">${moneyBR(t.final)}</span></td>
+          <td class="tdRight">
+            <div class="rowActions noPrint">
+              <button class="iconBtn" type="button" title="Abrir">↗</button>
+              <button class="iconBtn" type="button" title="Imprimir/PDF">⎙</button>
+              <button class="iconBtn danger" type="button" title="Excluir">🗑</button>
+            </div>
+          </td>
+        `;
+        const [btnOpen, btnPrintRow, btnDel] = $$(".rowActions button", tr);
+        btnOpen.addEventListener("click", ()=>{
+          store.ui.activeQuoteId = q.id;
+          saveStore(store);
+          renderAll();
+          showToast("Orçamento aberto.");
+        });
+        btnPrintRow.addEventListener("click", ()=>{
+          store.ui.activeQuoteId = q.id;
+          saveStore(store);
+          renderAll();
+          setTimeout(()=> window.print(), 50);
+        });
+        btnDel.addEventListener("click", ()=>{
+          if(!confirm(`Excluir o orçamento ${q.number}?`)) return;
+          deleteQuote(q.id);
+        });
+
+        historyTbody.appendChild(tr);
+      }
+
+      btnSwitchQuote.disabled = quotes.length < 2;
+    }
+
+    function clearServicesTable(){
+      servicesTbody.innerHTML = "";
+      totalVal.textContent = moneyBR(0);
+      finalVal.textContent = moneyBR(0);
+    }
+
+    function setQuoteInputsEnabled(on){
+      discountInput.disabled = !on;
+      feeInput.disabled = !on;
+      validUntil.disabled = !on;
+      paymentInput.disabled = !on;
+      quoteObs.disabled = !on;
+      quoteTerms.disabled = !on;
+      btnNewService.disabled = !on;
+      btnPrint.disabled = !on;
+      btnDeleteQuote.disabled = !on;
+      btnDuplicateQuote.disabled = !on;
+      btnMarkSent.disabled = !on;
+      btnFinalize.disabled = !on;
+    }
+
+    function renderAll(){
+      renderClientList();
+      renderActiveHeader();
+      renderQuoteArea();
+      updateDangerButtons();
+    }
+
+    function updateDangerButtons(){
+      const hasClient = !!getActiveClient();
+      btnDeleteClient.disabled = !hasClient;
+      btnEditClient.disabled = !hasClient;
+    }
+
+    // CRUD Clients
+    clientForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const nome = $("#cNome").value.trim();
+      if(!nome) return;
+
+      const c = {
+        id: uid("cli"),
+        nome,
+        doc: $("#cDoc").value.trim(),
+        telefone: $("#cTelefone").value.trim(),
+        email: $("#cEmail").value.trim(),
+        cidade: $("#cCidade").value.trim(),
+        endereco: $("#cEndereco").value.trim(),
+        criadoEm: new Date().toISOString()
+      };
+      store.clients.push(c);
+      store.ui.activeClientId = c.id;
+      store.ui.activeQuoteId = null;
+      saveStore(store);
+
+      clientForm.reset();
+      showToast("Cliente cadastrado.");
+      renderAll();
+    });
+
+    $("#btnResetClient").addEventListener("click", ()=> clientForm.reset());
+
+    btnDeleteClient.addEventListener("click", ()=>{
+      const client = getActiveClient();
+      if(!client) return;
+      const qs = getQuotesByClient(client.id);
+      const msg = qs.length
+        ? `Excluir cliente "${client.nome}" e também ${qs.length} orçamento(s)?`
+        : `Excluir cliente "${client.nome}"?`;
+      if(!confirm(msg)) return;
+
+      store.clients = store.clients.filter(c => c.id !== client.id);
+      store.quotes = store.quotes.filter(q => q.clientId !== client.id);
+
+      store.ui.activeClientId = store.clients[0]?.id || null;
+      store.ui.activeQuoteId = store.ui.activeClientId ? (getQuotesByClient(store.ui.activeClientId)[0]?.id || null) : null;
+
+      saveStore(store);
+      showToast("Cliente excluído.");
+      renderAll();
+    });
+
+    btnEditClient.addEventListener("click", ()=>{
+      const client = getActiveClient();
+      if(!client) return;
+      eNome.value = client.nome || "";
+      eDoc.value = client.doc || "";
+      eTelefone.value = client.telefone || "";
+      eEmail.value = client.email || "";
+      eCidade.value = client.cidade || "";
+      eEndereco.value = client.endereco || "";
+      dlgClient.showModal();
+    });
+
+    dlgClientForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const client = getActiveClient();
+      if(!client) return;
+
+      const nome = eNome.value.trim();
+      if(!nome) return showToast("Nome é obrigatório.");
+
+      const idx = store.clients.findIndex(c => c.id === client.id);
+      if(idx < 0) return;
+
+      store.clients[idx] = {
+        ...store.clients[idx],
+        nome,
+        doc: eDoc.value.trim(),
+        telefone: eTelefone.value.trim(),
+        email: eEmail.value.trim(),
+        cidade: eCidade.value.trim(),
+        endereco: eEndereco.value.trim(),
+      };
+      saveStore(store);
+      dlgClient.close();
+      showToast("Cliente atualizado.");
+      renderAll();
+    });
+
+    clientSearch.addEventListener("input", renderClientList);
+    btnClearSearch.addEventListener("click", ()=>{ clientSearch.value=""; renderClientList(); clientSearch.focus(); });
+
+    // CRUD Quotes
+    btnNewQuote.addEventListener("click", ()=>{
+      const client = getActiveClient();
+      if(!client){
+        showToast("Cadastre ou selecione um cliente primeiro.");
+        return;
+      }
+      qNumber.value = nextQuoteNumber();
+      qDate.value = isoToday();
+      qValidUntil.value = addDaysISO(7);
+      qPayment.value = "PIX";
+      qDiscount.value = "0";
+      qFee.value = "0";
+      qTitle.value = "";
+
+      dlgQuote.showModal();
+    });
+
+    dlgQuoteForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const client = getActiveClient();
+      if(!client) return;
+
+      const number = qNumber.value.trim();
+      if(!number) return showToast("Número é obrigatório.");
+
+      const exists = store.quotes.some(q => q.number === number);
+      if(exists && !confirm("Já existe um orçamento com esse número. Deseja continuar mesmo assim?")) return;
+
+      const quote = {
+        id: uid("orc"),
+        clientId: client.id,
+        number,
+        date: qDate.value || isoToday(),
+        validUntil: qValidUntil.value || addDaysISO(7),
+        payment: qPayment.value.trim() || "—",
+        discount: clampNum(qDiscount.value, 0, 1e12),
+        fee: clampNum(qFee.value, 0, 1e12),
+        title: qTitle.value.trim(),
+        status: "RASCUNHO",
+        obs: "",
+        terms: "",
+        services: [],
+        criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
+      };
+
+      store.quotes.push(quote);
+      store.ui.activeQuoteId = quote.id;
+
+      saveStore(store);
+      dlgQuote.close();
+      showToast("Orçamento criado.");
+      renderAll();
+    });
+
+    function updateActiveQuote(patch){
+      const quote = getActiveQuote();
+      if(!quote) return;
+      const idx = store.quotes.findIndex(q => q.id === quote.id);
+      if(idx < 0) return;
+      store.quotes[idx] = { ...store.quotes[idx], ...patch, atualizadoEm: new Date().toISOString() };
+      saveStore(store);
+    }
+
+    btnDeleteQuote.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      if(!quote) return;
+      if(!confirm(`Excluir o orçamento ${quote.number}?`)) return;
+      deleteQuote(quote.id);
+    });
+
+    function deleteQuote(quoteId){
+      const quote = store.quotes.find(q => q.id === quoteId);
+      if(!quote) return;
+
+      store.quotes = store.quotes.filter(q => q.id !== quoteId);
+
+      const qs = getQuotesByClient(quote.clientId);
+      store.ui.activeQuoteId = qs[0]?.id || null;
+
+      saveStore(store);
+      showToast("Orçamento excluído.");
+      renderAll();
+    }
+
+    btnDuplicateQuote.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      const client = getActiveClient();
+      if(!quote || !client) return;
+
+      const copy = structuredCloneSafe(quote);
+      copy.id = uid("orc");
+      copy.number = nextQuoteNumber();
+      copy.status = "RASCUNHO";
+      copy.date = isoToday();
+      copy.validUntil = addDaysISO(7);
+      copy.criadoEm = new Date().toISOString();
+      copy.atualizadoEm = copy.criadoEm;
+
+      copy.services = (copy.services || []).map(s => ({...s, id: uid("srv")}));
+
+      store.quotes.push(copy);
+      store.ui.activeQuoteId = copy.id;
+      saveStore(store);
+
+      showToast("Orçamento duplicado (nova versão criada).");
+      renderAll();
+    });
+
+    btnMarkSent.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      if(!quote) return;
+      updateActiveQuote({ status: "ENVIADO" });
+      showToast("Marcado como ENVIADO.");
+      renderAll();
+    });
+
+    btnFinalize.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      if(!quote) return;
+      if(!confirm("Finalizar/fechar orçamento? Isso bloqueia edição. (Você pode duplicar depois)")) return;
+      updateActiveQuote({ status: "FECHADO" });
+      showToast("Orçamento FECHADO.");
+      renderAll();
+    });
+
+    btnSwitchQuote.addEventListener("click", ()=>{
+      const client = getActiveClient();
+      if(!client) return;
+      const qs = getQuotesByClient(client.id);
+      switchQuoteSelect.innerHTML = qs.map(q => `<option value="${q.id}">${escapeHtml(q.number)} • ${escapeHtml(q.status)} • ${moneyBR(quoteTotals(q).final)}</option>`).join("");
+      switchQuoteSelect.value = store.ui.activeQuoteId || qs[0]?.id || "";
+      dlgSwitchQuote.showModal();
+    });
+
+    dlgSwitchQuoteForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const id = switchQuoteSelect.value;
+      if(!id) return;
+      store.ui.activeQuoteId = id;
+      saveStore(store);
+      dlgSwitchQuote.close();
+      showToast("Orçamento trocado.");
+      renderAll();
+    });
+
+    // Autosave quote inputs
+    function bindAutosave(input, getter){
+      let t = null;
+      input.addEventListener("input", ()=>{
+        const quote = getActiveQuote();
+        if(!quote || quote.status === "FECHADO") return;
+        clearTimeout(t);
+        t = setTimeout(()=>{
+          updateActiveQuote(getter());
+          renderQuoteArea();
+          showToast("Salvo.");
+        }, 280);
+      });
+    }
+
+    bindAutosave(discountInput, ()=>({ discount: clampNum(discountInput.value, 0, 1e12) }));
+    bindAutosave(feeInput, ()=>({ fee: clampNum(feeInput.value, 0, 1e12) }));
+    bindAutosave(validUntil, ()=>({ validUntil: validUntil.value }));
+    bindAutosave(paymentInput, ()=>({ payment: paymentInput.value.trim() }));
+    bindAutosave(quoteObs, ()=>({ obs: quoteObs.value }));
+    bindAutosave(quoteTerms, ()=>({ terms: quoteTerms.value }));
+
+    // CRUD Services
+    let serviceMode = "add";
+    let editingServiceId = null;
+
+    btnNewService.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      if(!quote) return showToast("Crie um orçamento primeiro.");
+      if(quote.status === "FECHADO") return showToast("Orçamento fechado. Duplique para editar.");
+
+      openServiceDialog("add");
+    });
+
+    function openServiceDialog(mode, serviceId=null){
+      const quote = getActiveQuote();
+      if(!quote) return;
+
+      serviceMode = mode;
+      editingServiceId = serviceId;
+
+      if(mode === "add"){
+        dlgServiceTitle.textContent = "Adicionar serviço";
+        btnServiceSave.textContent = "Adicionar";
+        sArea.value = "Solda";
+        sQtd.value = "1";
+        sDesc.value = "";
+        sUnit.value = "0";
+        sMaterial.value = "";
+        sPercent.value = "0";
+        sMatValue.value = "0";
+        sMatDesc.value = "";
+        sObs.value = "";
+      }else{
+        const s = (quote.services || []).find(x => x.id === serviceId);
+        if(!s) return showToast("Serviço não encontrado.");
+        dlgServiceTitle.textContent = "Editar serviço";
+        btnServiceSave.textContent = "Salvar";
+        sArea.value = s.area || "Outros";
+        sQtd.value = String(s.qtd ?? 1);
+        sDesc.value = s.desc || "";
+        sUnit.value = String(s.unit ?? 0);
+        sMaterial.value = s.material || "";
+        sPercent.value = s.percent ? String(s.percent) : "0";
+        sMatValue.value = s.matValue ? String(s.matValue) : "0";
+        sMatDesc.value = s.matDesc || "";
+        sObs.value = s.obs || "";
+      }
+
+      dlgService.showModal();
+      setTimeout(()=> sDesc.focus(), 50);
+    }
+
+    dlgServiceForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const quote = getActiveQuote();
+      if(!quote) return;
+      if(quote.status === "FECHADO") return showToast("Orçamento fechado.");
+
+      const area = sArea.value;
+      const qtd = clampNum(sQtd.value, 0.01, 1e12);
+      const desc = sDesc.value.trim();
+      const unit = clampNum(sUnit.value, 0, 1e12);
+      const material = sMaterial.value.trim();
+      const percent = clampNum(sPercent.value, 0, 100);
+      const matValue = clampNum(sMatValue.value, 0, 1e12);
+      const matDesc = sMatDesc.value.trim();
+      const obs = sObs.value.trim();
+
+      if(!desc) return showToast("Descrição é obrigatória.");
+
+      const idxQ = store.quotes.findIndex(q => q.id === quote.id);
+      if(idxQ < 0) return;
+
+      const services = store.quotes[idxQ].services || [];
+
+      if(serviceMode === "add"){
+        services.push({ id: uid("srv"), area, qtd, desc, unit, material, obs, percent, matValue, matDesc });
+        store.quotes[idxQ].services = services;
+        store.quotes[idxQ].atualizadoEm = new Date().toISOString();
+        saveStore(store);
+        dlgService.close();
+        showToast("Serviço adicionado.");
+        renderAll();
+      }else{
+        const idxS = services.findIndex(s => s.id === editingServiceId);
+        if(idxS < 0) return showToast("Serviço não encontrado.");
+        services[idxS] = { ...services[idxS], area, qtd, desc, unit, material, obs, percent, matValue, matDesc };
+        store.quotes[idxQ].services = services;
+        store.quotes[idxQ].atualizadoEm = new Date().toISOString();
+        saveStore(store);
+        dlgService.close();
+        showToast("Serviço atualizado.");
+        renderAll();
+      }
+    });
+
+    function deleteService(serviceId){
+      const quote = getActiveQuote();
+      if(!quote) return;
+      if(quote.status === "FECHADO") return showToast("Orçamento fechado.");
+
+      const idxQ = store.quotes.findIndex(q => q.id === quote.id);
+      if(idxQ < 0) return;
+
+      store.quotes[idxQ].services = (store.quotes[idxQ].services || []).filter(s => s.id !== serviceId);
+      store.quotes[idxQ].atualizadoEm = new Date().toISOString();
+      saveStore(store);
+
+      showToast("Serviço excluído.");
+      renderAll();
+    }
+
+    // Print / PDF
+    btnPrint.addEventListener("click", ()=>{
+      const quote = getActiveQuote();
+      if(!quote) return;
+      setTimeout(()=> window.print(), 50);
+    });
+
+    // Export / Import
+    btnExport.addEventListener("click", ()=>{
+      const data = {
+        exportedAt: new Date().toISOString(),
+        app: "Ofício Orçamentos",
+        version: 1,
+        payload: store
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `oficio_orcamentos_backup_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast("Backup exportado.");
+    });
+
+    btnImport.addEventListener("click", ()=> fileImport.click());
+
+    fileImport.addEventListener("change", async ()=>{
+      const file = fileImport.files?.[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const incoming = data.payload || data;
+        if(!incoming || !Array.isArray(incoming.clients) || !Array.isArray(incoming.quotes)){
+          throw new Error("Arquivo inválido.");
+        }
+        if(!confirm("Importar backup? Isso substituirá seus dados atuais.")){
+          fileImport.value = "";
+          return;
+        }
+        store = incoming;
+        store.ui = store.ui || { activeClientId: null, activeQuoteId: null };
+        if(store.ui.activeClientId && !store.clients.some(c=>c.id===store.ui.activeClientId)) store.ui.activeClientId = null;
+        if(store.ui.activeQuoteId && !store.quotes.some(q=>q.id===store.ui.activeQuoteId)) store.ui.activeQuoteId = null;
+
+        saveStore(store);
+        showToast("Dados importados.");
+        renderAll();
+      }catch(err){
+        alert("Falha ao importar: " + (err?.message || err));
+      }finally{
+        fileImport.value = "";
+      }
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e)=>{
+      if(e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey){
+        e.preventDefault();
+        btnNewQuote.click();
+      }
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        clientSearch.focus();
+      }
+    });
+
+    // Helpers
+    function fmtQty(q){
+      const n = Number(q || 0);
+      if(Number.isInteger(n)) return String(n);
+      return n.toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function structuredCloneSafe(obj){
+      if(typeof structuredClone === "function") return structuredClone(obj);
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    // Reveal on scroll
+    const toReveal = $$("[data-reveal]");
+    const io = new IntersectionObserver((entries)=>{
+      for(const e of entries){
+        if(e.isIntersecting){
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+        }
+      }
+    }, {threshold: 0.12});
+    toReveal.forEach(el=> io.observe(el));
+
+    // Init
+    if(!store.ui.activeClientId && store.clients.length){
+      store.ui.activeClientId = store.clients[0].id;
+      store.ui.activeQuoteId = getQuotesByClient(store.ui.activeClientId)[0]?.id || null;
+      saveStore(store);
+    }
+    renderAll();
+  </script>
+</body>
+</html>

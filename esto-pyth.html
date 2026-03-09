@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTOQUE PRO - Controle de Estoque</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar { transition: all 0.3s; }
+        .card { transition: all 0.3s; }
+        .card:hover { transform: translateY(-4px); }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-72 bg-zinc-900 p-6 sidebar">
+            <h1 class="text-2xl font-bold text-emerald-500 mb-8 flex items-center gap-3">
+                <i class="fas fa-boxes"></i> ESTOQUE PRO
+            </h1>
+            <nav class="space-y-1">
+                <button onclick="showScreen('dashboard')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button onclick="showScreen('cadastrar')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-plus"></i> Cadastrar Produto
+                </button>
+                <button onclick="showScreen('listar')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-list"></i> Listar Produtos
+                </button>
+                <button onclick="showScreen('compra')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-arrow-down"></i> Compra (Entrada)
+                </button>
+                <button onclick="showScreen('venda')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-arrow-up"></i> Venda (Saída)
+                </button>
+                <button onclick="showScreen('ajuste')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-sync"></i> Ajuste de Estoque
+                </button>
+                <button onclick="showScreen('baixo')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-exclamation-triangle"></i> Abaixo do Mínimo
+                </button>
+                <button onclick="showScreen('movimentos')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-history"></i> Movimentos
+                </button>
+                <button onclick="exportarCSV()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-zinc-800 flex items-center gap-3">
+                    <i class="fas fa-file-export"></i> Exportar CSV
+                </button>
+                <button onclick="initDB()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-red-900/30 text-red-400 flex items-center gap-3">
+                    <i class="fas fa-database"></i> Reiniciar Banco (Init)
+                </button>
+            </nav>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 p-8 overflow-auto">
+            <div id="dashboard" class="screen">
+                <h2 class="text-3xl font-bold mb-8">Dashboard de Estoque</h2>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p class="text-zinc-400">Total de Produtos</p>
+                        <p id="totalProdutos" class="text-5xl font-bold text-emerald-500">0</p>
+                    </div>
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p class="text-zinc-400">Produtos Baixo Estoque</p>
+                        <p id="baixoEstoque" class="text-5xl font-bold text-amber-500">0</p>
+                    </div>
+                    <div class="bg-zinc-900 p-6 rounded-3xl">
+                        <p class="text-zinc-400">Valor Total em Estoque</p>
+                        <p id="valorTotal" class="text-5xl font-bold text-sky-500">R$ 0,00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela Cadastrar Produto -->
+            <div id="cadastrar" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Cadastrar Novo Produto</h2>
+                <form id="formCadastrar" class="max-w-md space-y-6">
+                    <input id="nome" placeholder="Nome do Produto" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="codigo" placeholder="Código" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="quantidade" type="number" placeholder="Quantidade Inicial" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="minimo" type="number" placeholder="Estoque Mínimo" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <input id="preco" type="number" step="0.01" placeholder="Preço Unitário" class="w-full p-4 bg-zinc-900 rounded-2xl">
+                    <button type="submit" class="w-full bg-emerald-600 py-4 rounded-2xl font-bold">Cadastrar Produto</button>
+                </form>
+            </div>
+
+            <!-- Tela Listar Produtos -->
+            <div id="listar" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Lista de Produtos</h2>
+                <div id="tabelaProdutos" class="bg-zinc-900 rounded-3xl overflow-hidden"></div>
+            </div>
+
+            <!-- Tela Compra -->
+            <div id="compra" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Entrada (Compra)</h2>
+                <div id="formCompra"></div>
+            </div>
+
+            <!-- Tela Venda -->
+            <div id="venda" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Saída (Venda)</h2>
+                <div id="formVenda"></div>
+            </div>
+
+            <!-- Tela Ajuste -->
+            <div id="ajuste" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Ajuste de Estoque</h2>
+                <div id="formAjuste"></div>
+            </div>
+
+            <!-- Tela Abaixo do Mínimo -->
+            <div id="baixo" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Produtos Abaixo do Mínimo</h2>
+                <div id="tabelaBaixo"></div>
+            </div>
+
+            <!-- Tela Movimentos -->
+            <div id="movimentos" class="screen hidden">
+                <h2 class="text-3xl font-bold mb-6">Histórico de Movimentos</h2>
+                <div id="tabelaMovimentos"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+        let movimentos = JSON.parse(localStorage.getItem('movimentos')) || [];
+
+        function saveData() {
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+            localStorage.setItem('movimentos', JSON.stringify(movimentos));
+        }
+
+        function showScreen(screen) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screen).classList.remove('hidden');
+            if (screen === 'listar') renderLista();
+            if (screen === 'baixo') renderBaixo();
+            if (screen === 'movimentos') renderMovimentos();
+        }
+
+        // Init (criar banco)
+        function initDB() {
+            if (confirm("Deseja reiniciar o banco de dados?")) {
+                localStorage.clear();
+                produtos = [];
+                movimentos = [];
+                alert("Banco reiniciado com sucesso!");
+                showScreen('dashboard');
+            }
+        }
+
+        // Cadastrar Produto
+        document.getElementById('formCadastrar').addEventListener('submit', e => {
+            e.preventDefault();
+            const produto = {
+                id: Date.now(),
+                nome: document.getElementById('nome').value,
+                codigo: document.getElementById('codigo').value,
+                quantidade: parseInt(document.getElementById('quantidade').value) || 0,
+                minimo: parseInt(document.getElementById('minimo').value) || 0,
+                preco: parseFloat(document.getElementById('preco').value) || 0
+            };
+            produtos.push(produto);
+            saveData();
+            alert("Produto cadastrado!");
+            e.target.reset();
+        });
+
+        // Renderizar lista
+        function renderLista() {
+            let html = `<table class="w-full"><thead><tr class="bg-zinc-800"><th class="p-4">Código</th><th class="p-4">Nome</th><th class="p-4">Estoque</th><th class="p-4">Mínimo</th><th class="p-4">Preço</th></tr></thead><tbody>`;
+            produtos.forEach(p => {
+                html += `<tr class="border-b border-zinc-700"><td class="p-4">${p.codigo}</td><td class="p-4">${p.nome}</td><td class="p-4">${p.quantidade}</td><td class="p-4">${p.minimo}</td><td class="p-4">R$ ${p.preco}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('tabelaProdutos').innerHTML = html;
+        }
+
+        // Renderizar baixo estoque
+        function renderBaixo() {
+            const baixos = produtos.filter(p => p.quantidade < p.minimo);
+            let html = `<table class="w-full">`;
+            baixos.forEach(p => {
+                html += `<tr><td>${p.nome}</td><td class="text-red-500">${p.quantidade} / ${p.minimo}</td></tr>`;
+            });
+            html += `</table>`;
+            document.getElementById('tabelaBaixo').innerHTML = html || "<p>Nenhum produto abaixo do mínimo.</p>";
+        }
+
+        // Renderizar movimentos
+        function renderMovimentos() {
+            let html = `<table class="w-full">`;
+            movimentos.forEach(m => {
+                html += `<tr><td>${m.tipo}</td><td>${m.produto}</td><td>${m.quantidade}</td><td>${m.data}</td></tr>`;
+            });
+            html += `</table>`;
+            document.getElementById('tabelaMovimentos').innerHTML = html || "<p>Nenhum movimento registrado.</p>";
+        }
+
+        // Exportar CSV
+        function exportarCSV() {
+            let csv = "Codigo,Nome,Quantidade,Preco\n";
+            produtos.forEach(p => {
+                csv += `${p.codigo},${p.nome},${p.quantidade},${p.preco}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'estoque.csv';
+            a.click();
+        }
+
+        // Inicialização
+        window.onload = () => {
+            showScreen('dashboard');
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR');
+        };
+    </script>
+</body>
+</html>

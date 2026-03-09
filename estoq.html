@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EstoquePro — Streamlit • UI Conceito</title>
+  <meta name="description" content="Conceito de interface para EstoquePro (controle de estoque) em Streamlit: cadastro, movimentações, alertas e relatórios." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300,400,600,700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Aesthetic direction: "Swiss Utility + Warm Ledger"
+         - Clean, information-dense, trustworthy (inventory/finance vibe)
+         - Warm paper base + ink + copper accent + subtle teal for status
+      */
+      --bg: #fbf7f0;
+      --paper: rgba(255,255,255,.72);
+      --paper-2: rgba(255,255,255,.54);
+      --ink: #141414;
+      --muted: rgba(20,20,20,.68);
+      --hair: rgba(20,20,20,.12);
+      --hair-2: rgba(20,20,20,.18);
+
+      --accent: #b45a2a;  /* copper */
+      --accent-2: #1f6f6d; /* teal */
+      --warn: #a13b2a;
+      --ok: #1f6f6d;
+
+      --shadow: 0 18px 40px rgba(20,20,20,.10);
+      --shadow-2: 0 10px 28px rgba(20,20,20,.10);
+      --radius: 22px;
+      --radius-2: 16px;
+      --radius-3: 12px;
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --display: "Fraunces", serif;
+      --body: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--body);
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 700px at 18% 10%, rgba(180,90,42,.16), transparent 60%),
+        radial-gradient(900px 540px at 85% 22%, rgba(31,111,109,.14), transparent 55%),
+        radial-gradient(900px 900px at 30% 100%, rgba(20,20,20,.06), transparent 60%),
+        linear-gradient(180deg, var(--bg), #f6f0e6 60%, #f3ecdf);
+      overflow-x:hidden;
+    }
+
+    /* Subtle paper grain (CSS-only) */
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        repeating-linear-gradient(0deg, rgba(20,20,20,.018) 0 1px, transparent 1px 6px),
+        repeating-linear-gradient(90deg, rgba(20,20,20,.012) 0 1px, transparent 1px 7px);
+      mix-blend-mode:multiply;
+      opacity:.35;
+      filter: blur(.2px);
+    }
+
+    a{ color:inherit; }
+    .wrap{
+      width:min(1180px, 92vw);
+      margin: 0 auto;
+      padding: 28px 0 60px;
+      position:relative;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      padding: 14px 0 18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:flex-start;
+      gap:14px;
+    }
+
+    .mark{
+      width:44px;height:44px;
+      border-radius:14px;
+      background:
+        radial-gradient(22px 22px at 32% 30%, rgba(255,255,255,.75), transparent 62%),
+        linear-gradient(145deg, rgba(180,90,42,.98), rgba(20,20,20,.92));
+      box-shadow: var(--shadow-2);
+      position:relative;
+      overflow:hidden;
+    }
+    .mark:after{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: conic-gradient(from 210deg, rgba(255,255,255,.0), rgba(255,255,255,.22), rgba(255,255,255,0));
+      transform: rotate(12deg);
+    }
+
+    .brand h1{
+      margin:0;
+      font-family: var(--display);
+      font-size: clamp(22px, 2.2vw, 30px);
+      letter-spacing: .2px;
+      line-height:1.05;
+    }
+    .brand p{
+      margin:6px 0 0;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height:1.3;
+      max-width: 52ch;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 6px 18px rgba(20,20,20,.07);
+      font-size: 13px;
+      color: rgba(20,20,20,.78);
+    }
+    .dot{
+      width:8px;height:8px;border-radius:99px;
+      background: var(--ok);
+      box-shadow: 0 0 0 5px rgba(31,111,109,.10);
+    }
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 600;
+      letter-spacing:.2px;
+      background: rgba(20,20,20,.92);
+      color: #fff;
+      box-shadow: 0 12px 26px rgba(20,20,20,.16);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: 0 16px 34px rgba(20,20,20,.18); }
+    .btn:active{ transform: translateY(0px) scale(.98); box-shadow: 0 10px 20px rgba(20,20,20,.16); }
+    .btn.secondary{
+      background: rgba(255,255,255,.58);
+      color: rgba(20,20,20,.88);
+      border: 1px solid var(--hair);
+      box-shadow: 0 10px 22px rgba(20,20,20,.10);
+    }
+    .btn.secondary:hover{ background: rgba(255,255,255,.72); }
+
+    main{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      margin-top: 18px;
+      align-items:start;
+    }
+
+    /* Left rail mimics Streamlit sidebar */
+    aside{
+      position: sticky;
+      top: 18px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.64), rgba(255,255,255,.44));
+      border: 1px solid var(--hair);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .aside-head{
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .aside-head h2{
+      margin:0;
+      font-family: var(--display);
+      font-size: 18px;
+      letter-spacing:.2px;
+    }
+    .aside-head .sub{
+      margin:6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.3;
+    }
+
+    .nav{
+      padding: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .nav button{
+      width:100%;
+      text-align:left;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 12px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      transition: background .15s ease, transform .15s ease, border-color .15s ease;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      color: rgba(20,20,20,.86);
+    }
+    .nav button:hover{
+      background: rgba(180,90,42,.08);
+      border-color: rgba(180,90,42,.18);
+      transform: translateY(-1px);
+    }
+    .nav button[aria-current="page"]{
+      background: rgba(20,20,20,.92);
+      color: #fff;
+      border-color: rgba(255,255,255,.12);
+      box-shadow: 0 10px 22px rgba(20,20,20,.15);
+    }
+    .nav .k{
+      display:flex; align-items:center; gap:10px;
+      font-weight: 600;
+      letter-spacing:.1px;
+      font-size: 13.5px;
+    }
+    .icon{
+      width:26px;height:26px;border-radius: 10px;
+      display:grid;place-items:center;
+      background: rgba(20,20,20,.06);
+      border: 1px solid var(--hair);
+      flex: 0 0 auto;
+    }
+    .nav button[aria-current="page"] .icon{
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.14);
+    }
+    .badge{
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      color: rgba(20,20,20,.72);
+    }
+    .nav button[aria-current="page"] .badge{
+      border-color: rgba(255,255,255,.20);
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.86);
+    }
+
+    .aside-foot{
+      padding: 14px 18px 18px;
+      border-top: 1px solid var(--hair);
+      background: rgba(255,255,255,.35);
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 12px;
+      align-items:baseline;
+      font-size: 13px;
+      color: rgba(20,20,20,.78);
+    }
+    .kv b{ color: rgba(20,20,20,.92); font-weight: 650; }
+    .sep{ height:1px; background: var(--hair); margin: 10px 0; }
+
+    /* Content area */
+    section{
+      border-radius: var(--radius);
+      border: 1px solid var(--hair);
+      background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.42));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .content-head{
+      padding: 20px 20px 12px;
+      border-bottom: 1px solid var(--hair);
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap:wrap;
+    }
+    .content-head h2{
+      margin:0;
+      font-family: var(--display);
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height:1.05;
+      letter-spacing:.1px;
+    }
+    .content-head p{
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 70ch;
+    }
+    .head-right{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+    }
+
+    .toolbar{
+      padding: 16px 20px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr .6fr auto;
+      gap: 12px;
+      border-bottom: 1px solid var(--hair);
+      background: rgba(255,255,255,.34);
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 7px;
+    }
+    label{
+      font-size: 12.5px;
+      color: rgba(20,20,20,.72);
+      letter-spacing:.2px;
+    }
+    input, select, textarea{
+      width:100%;
+      border-radius: 14px;
+      border: 1px solid var(--hair-2);
+      background: rgba(255,255,255,.65);
+      padding: 10px 12px;
+      font-family: var(--body);
+      font-size: 14px;
+      color: rgba(20,20,20,.9);
+      outline:none;
+      transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    textarea{ min-height: 42px; resize: vertical; }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(180,90,42,.45);
+      box-shadow: 0 0 0 5px rgba(180,90,42,.12);
+    }
+
+    .table-wrap{
+      padding: 16px 20px 20px;
+    }
+
+    table{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow:hidden;
+      border-radius: 16px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+    }
+    thead th{
+      text-align:left;
+      font-size: 12px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color: rgba(20,20,20,.62);
+      padding: 12px 12px;
+      background: rgba(255,255,255,.55);
+      border-bottom: 1px solid var(--hair);
+      font-weight: 700;
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(20,20,20,.08);
+      color: rgba(20,20,20,.86);
+      vertical-align: top;
+      font-size: 14px;
+    }
+    tbody tr:hover td{
+      background: rgba(31,111,109,.06);
+    }
+    tbody tr:last-child td{ border-bottom: 0; }
+    .mono{ font-family: var(--mono); font-size: 13px; color: rgba(20,20,20,.78); }
+    .right{ text-align:right; }
+
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.56);
+      white-space:nowrap;
+    }
+    .status.low{ border-color: rgba(161,59,42,.30); background: rgba(161,59,42,.08); color: rgba(161,59,42,.95);}
+    .status.ok{ border-color: rgba(31,111,109,.28); background: rgba(31,111,109,.08); color: rgba(31,111,109,.95);}
+    .status .s-dot{ width:8px;height:8px;border-radius:99px; background: currentColor; box-shadow: 0 0 0 5px rgba(0,0,0,.06);}
+
+    .callout{
+      margin: 0 20px 16px;
+      padding: 14px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(180,90,42,.22);
+      background: linear-gradient(180deg, rgba(180,90,42,.12), rgba(255,255,255,.34));
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
+    }
+    .callout .t{
+      display:flex; gap:12px; align-items:flex-start;
+    }
+    .callout h3{
+      margin:0;
+      font-size: 14px;
+      letter-spacing:.2px;
+    }
+    .callout p{
+      margin:6px 0 0;
+      color: rgba(20,20,20,.72);
+      font-size: 13.5px;
+      max-width: 80ch;
+    }
+
+    /* Motion */
+    .reveal{ opacity:0; transform: translateY(10px); }
+    .reveal.in{
+      animation: rise .7s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    @keyframes rise{
+      to{ opacity:1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      main{ grid-template-columns: 1fr; }
+      aside{ position:relative; top:0; }
+      .toolbar{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px){
+      header{ flex-direction:column; align-items:stretch; }
+      .top-actions{ justify-content:flex-start; }
+      .toolbar{ grid-template-columns: 1fr; }
+      .content-head{ align-items:flex-start; }
+    }
+
+    /* Print-friendly */
+    @media print{
+      body:before{ display:none; }
+      .btn, .pill, aside{ display:none !important; }
+      main{ grid-template-columns: 1fr; }
+      section{ box-shadow:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="reveal">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>EstoquePro</h1>
+          <p>Versão Streamlit (conceito): cadastro, movimentações em ledger, alertas de mínimo e relatórios com exportação CSV.</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <span class="pill"><span class="dot" aria-hidden="true"></span>SQLite conectado <span class="mono">estoquepro.db</span></span>
+        <button class="btn secondary" type="button" id="btnHelp" aria-haspopup="dialog" aria-controls="helpDialog">
+          <span aria-hidden="true">?</span> Como rodar
+        </button>
+        <button class="btn" type="button" id="btnDemo">
+          <span aria-hidden="true">↻</span> Popular demo
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="reveal" style="animation-delay:.06s">
+        <div class="aside-head">
+          <h2>Navegação</h2>
+          <div class="sub">Simula a <b>sidebar</b> do Streamlit. Seções organizadas para operação diária.</div>
+        </div>
+
+        <nav class="nav" aria-label="Seções">
+          <button class="tab" data-tab="dashboard" aria-current="page">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 13.2V20h6.6v-6.8H4Z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M13.4 4v16H20V4h-6.6Z" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </span>
+              Dashboard
+            </span>
+            <span class="badge" id="badgeLow">0 alertas</span>
+          </button>
+
+          <button class="tab" data-tab="cadastro">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Cadastro
+            </span>
+            <span class="badge">produtos</span>
+          </button>
+
+          <button class="tab" data-tab="movimentos">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 7h10v10H7z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M7 12h10" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </span>
+              Movimentações
+            </span>
+            <span class="badge">ledger</span>
+          </button>
+
+          <button class="tab" data-tab="relatorios">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 3h10v18H7z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M9 7h6M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Relatórios
+            </span>
+            <span class="badge">CSV</span>
+          </button>
+
+          <button class="tab" data-tab="auditoria">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 21s7-3.2 7-10V5l-7-2-7 2v6c0 6.8 7 10 7 10Z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M9.5 12.3l1.7 1.7 3.8-4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Auditoria
+            </span>
+            <span class="badge">logs</span>
+          </button>
+        </nav>
+
+        <div class="aside-foot">
+          <div class="kv">
+            <span>Modo</span><b>Operação</b>
+            <span>Moeda</span><b>BRL</b>
+            <span>Ledger</span><b>Somatório</b>
+          </div>
+          <div class="sep"></div>
+          <div class="kv">
+            <span>Atalhos</span><b class="mono">Ctrl/⌘ + K</b>
+            <span>Export</span><b class="mono">/export.csv</b>
+          </div>
+        </div>
+      </aside>
+
+      <section class="reveal" style="animation-delay:.12s">
+        <div class="content-head">
+          <div>
+            <h2 id="viewTitle">Dashboard</h2>
+            <p id="viewDesc">Visão rápida do saldo por SKU, alertas de estoque mínimo e valorização aproximada por custo médio.</p>
+          </div>
+          <div class="head-right">
+            <button class="btn secondary" type="button" id="btnExport">
+              <span aria-hidden="true">⤓</span> Exportar CSV
+            </button>
+            <button class="btn" type="button" id="btnNewMove">
+              <span aria-hidden="true">＋</span> Nova movimentação
+            </button>
+          </div>
+        </div>
+
+        <div class="callout reveal" style="animation-delay:.18s" id="callout">
+          <div class="t">
+            <div class="icon" aria-hidden="true" style="background: rgba(180,90,42,.10); border-color: rgba(180,90,42,.22);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 9v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M12 17h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                <path d="M10.3 4.7 3.2 18.2c-.4.8.2 1.8 1.1 1.8h15.4c.9 0 1.5-1 .1-1.8L13.7 4.7c-.4-.8-1.5-.8-1.9 0Z" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Conversão do CLI para Streamlit</h3>
+              <p>
+                A implementação ideal mantém o mesmo <b>schema</b> SQLite e a regra de negócio (ledger + custo médio), mas troca o
+                <span class="mono">argparse</span> por páginas Streamlit: cadastro, compra/venda/ajuste, alertas e relatórios.
+                Se você quiser, eu entrego o <b>app.py completo</b> e módulos (<span class="mono">db.py</span>, <span class="mono">services.py</span>) com tudo funcionando.
+              </p>
+            </div>
+          </div>
+          <button class="btn secondary" type="button" id="btnCloseCallout">Entendi</button>
+        </div>
+
+        <div class="toolbar reveal" style="animation-delay:.22s" id="toolbar">
+          <div class="field">
+            <label for="q">Buscar (SKU ou nome)</label>
+            <input id="q" placeholder="Ex.: CABO-USB, açúcar, detergente..." />
+          </div>
+          <div class="field">
+            <label for="cat">Categoria</label>
+            <select id="cat">
+              <option value="">Todas</option>
+              <option>Alimentos</option>
+              <option>Limpeza</option>
+              <option>Eletrônicos</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="onlyLow">Alerta</label>
+            <select id="onlyLow">
+              <option value="0">Todos</option>
+              <option value="1">Abaixo do mínimo</option>
+            </select>
+          </div>
+          <div class="field" style="align-self:end;">
+            <button class="btn" type="button" id="btnApply">Aplicar</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table aria-label="Tabela de estoque" class="reveal" style="animation-delay:.26s">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Produto</th>
+                <th>Categoria</th>
+                <th class="right">Saldo</th>
+                <th class="right">Mínimo</th>
+                <th class="right">Preço</th>
+                <th class="right">Custo médio</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer style="padding:18px 0 0; color:rgba(20,20,20,.62); font-size:13px;">
+      <div class="reveal" style="animation-delay:.32s">
+        <span class="mono">EstoquePro</span> • UI conceito para Streamlit. Sem imagens externas, sem dependências.
+      </div>
+    </footer>
+  </div>
+
+  <dialog id="helpDialog" style="border:1px solid rgba(20,20,20,.18); border-radius:18px; padding:0; width:min(720px, 92vw); box-shadow: 0 26px 70px rgba(20,20,20,.22); background: rgba(255,255,255,.86); backdrop-filter: blur(10px);">
+    <div style="padding:18px 18px 12px; border-bottom:1px solid rgba(20,20,20,.12); display:flex; justify-content:space-between; gap:14px; align-items:center;">
+      <div>
+        <div style="font-family:var(--display); font-size:20px; letter-spacing:.1px;">Como rodar a versão Streamlit</div>
+        <div style="margin-top:6px; color:rgba(20,20,20,.68); font-size:13.5px;">Estrutura sugerida e comandos para iniciar.</div>
+      </div>
+      <button class="btn secondary" id="btnCloseHelp" type="button">Fechar</button>
+    </div>
+    <div style="padding:16px 18px 18px;">
+      <pre style="margin:0; padding:14px; border-radius:16px; border:1px solid rgba(20,20,20,.12); background: rgba(255,255,255,.58); overflow:auto; font-family:var(--mono); font-size:12.8px; line-height:1.45; color:rgba(20,20,20,.86);"># 1) Instale
+pip install streamlit
+
+# 2) Arquivo
+# app.py (usa o mesmo schema SQLite do seu CLI)
+
+# 3) Rode
+streamlit run app.py
+
+# 4) Dica
+# Use st.sidebar.radio(...) para páginas:
+# Dashboard | Cadastro | Movimentações | Relatórios | Auditoria</pre>
+      <div style="margin-top:12px; color:rgba(20,20,20,.72); font-size:13.5px;">
+        Se você me disser quais telas quer primeiro (ex.: “Cadastro + Compra/Venda + Alertas”), eu monto o <span class="mono">app.py</span> com tudo persistindo em SQLite.
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const data = [
+      {sku:"ACUCAR-1KG", nome:"Açúcar Refinado 1kg", cat:"Alimentos", saldo: 8, min: 12, preco: 6.90, custo: 4.70},
+      {sku:"DETERG-500", nome:"Detergente Neutro 500ml", cat:"Limpeza", saldo: 34, min: 10, preco: 3.50, custo: 2.10},
+      {sku:"CABO-USB-C", nome:"Cabo USB-C 1m (Trançado)", cat:"Eletrônicos", saldo: 5, min: 5, preco: 39.90, custo: 21.50},
+      {sku:"CAFE-500G", nome:"Café Torrado e Moído 500g", cat:"Alimentos", saldo: 2, min: 8, preco: 18.90, custo: 12.20},
+      {sku:"ALCOOL-70", nome:"Álcool 70% 1L", cat:"Limpeza", saldo: 11, min: 12, preco: 12.00, custo: 8.10},
+    ];
+
+    const $ = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => [...el.querySelectorAll(q)];
+
+    function brl(v){
+      return "R$ " + (Math.round(v*100)/100).toFixed(2).replace(".", ",");
+    }
+
+    function renderTable(){
+      const q = ($("#q").value || "").trim().toLowerCase();
+      const cat = $("#cat").value;
+      const onlyLow = $("#onlyLow").value === "1";
+
+      const rows = data.filter(r => {
+        const hit = !q || (r.sku.toLowerCase().includes(q) || r.nome.toLowerCase().includes(q));
+        const hitCat = !cat || r.cat === cat;
+        const low = r.saldo < r.min;
+        const hitLow = !onlyLow || low;
+        return hit && hitCat && hitLow;
+      });
+
+      const tbody = $("#tbody");
+      tbody.innerHTML = rows.map(r => {
+        const low = r.saldo < r.min;
+        const status = low ? "low" : "ok";
+        const label = low ? "Abaixo do mínimo" : "OK";
+        return `
+          <tr>
+            <td class="mono">${r.sku}</td>
+            <td>${r.nome}</td>
+            <td>${r.cat}</td>
+            <td class="right mono">${r.saldo}</td>
+            <td class="right mono">${r.min}</td>
+            <td class="right">${brl(r.preco)}</td>
+            <td class="right">${brl(r.custo)}</td>
+            <td><span class="status ${status}"><span class="s-dot" aria-hidden="true"></span>${label}</span></td>
+          </tr>
+        `;
+      }).join("");
+
+      const lowCount = data.filter(r => r.saldo < r.min).length;
+      $("#badgeLow").textContent = `${lowCount} alertas`;
+    }
+
+    function setView(tab){
+      const title = $("#viewTitle");
+      const desc = $("#viewDesc");
+      const toolbar = $("#toolbar");
+      const btnNewMove = $("#btnNewMove");
+      const btnExport = $("#btnExport");
+
+      const map = {
+        dashboard: {
+          t:"Dashboard",
+          d:"Visão rápida do saldo por SKU, alertas de estoque mínimo e valorização aproximada por custo médio.",
+          showToolbar:true, newMove:true, export:true
+        },
+        cadastro: {
+          t:"Cadastro",
+          d:"Produtos, categorias, fornecedores e clientes. Em Streamlit: formulários com validação e feedback imediato.",
+          showToolbar:false, newMove:false, export:false
+        },
+        movimentos: {
+          t:"Movimentações",
+          d:"Compras (entrada), vendas (saída) e ajustes (+/-). Ledger como fonte da verdade para o saldo.",
+          showToolbar:false, newMove:true, export:true
+        },
+        relatorios: {
+          t:"Relatórios",
+          d:"Saldo, valorização (custo médio simples) e movimentações por período, com exportação para CSV.",
+          showToolbar:false, newMove:false, export:true
+        },
+        auditoria: {
+          t:"Auditoria",
+          d:"Registro de ações (INIT_DB, CAD_PRODUTO, COMPRA, VENDA etc.) para rastreabilidade básica.",
+          showToolbar:false, newMove:false, export:true
+        }
+      };
+
+      const v = map[tab] || map.dashboard;
+      title.textContent = v.t;
+      desc.textContent = v.d;
+      toolbar.style.display = v.showToolbar ? "grid" : "none";
+      btnNewMove.style.display = v.newMove ? "inline-flex" : "none";
+      btnExport.style.display = v.export ? "inline-flex" : "none";
+    }
+
+    // Tabs
+    $$(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        $$(".tab").forEach(b => b.removeAttribute("aria-current"));
+        btn.setAttribute("aria-current", "page");
+        setView(btn.dataset.tab);
+      });
+    });
+
+    // Toolbar actions
+    $("#btnApply").addEventListener("click", renderTable);
+    $("#q").addEventListener("keydown", (e)=>{ if(e.key==="Enter") renderTable(); });
+    $("#cat").addEventListener("change", renderTable);
+    $("#onlyLow").addEventListener("change", renderTable);
+
+    // Export CSV (client-side demo)
+    $("#btnExport").addEventListener("click", () => {
+      const header = ["sku","nome","categoria","saldo","minimo","preco_venda","custo_medio"];
+      const lines = [header.join(",")].concat(data.map(r =>
+        [r.sku, `"${r.nome.replaceAll('"','""')}"`, r.cat, r.saldo, r.min, r.preco, r.custo].join(",")
+      ));
+      const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "estoquepro_export.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Demo populate
+    $("#btnDemo").addEventListener("click", () => {
+      // tiny random tweak to show "update"
+      data.forEach(r => {
+        const delta = Math.round((Math.random()*6 - 3));
+        r.saldo = Math.max(0, r.saldo + delta);
+      });
+      renderTable();
+    });
+
+    // Help dialog
+    const dlg = $("#helpDialog");
+    $("#btnHelp").addEventListener("click", ()=> dlg.showModal());
+    $("#btnCloseHelp").addEventListener("click", ()=> dlg.close());
+    dlg.addEventListener("click", (e)=>{
+      const rect = dlg.getBoundingClientRect();
+      const inDialog = rect.top <= e.clientY && e.clientY <= rect.bottom && rect.left <= e.clientX && e.clientX <= rect.right;
+      if(!inDialog) dlg.close();
+    });
+
+    // Callout close
+    $("#btnCloseCallout").addEventListener("click", ()=> $("#callout").style.display = "none");
+
+    // Reveal on scroll
+    const io = new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        if(en.isIntersecting){
+          en.target.classList.add("in");
+          io.unobserve(en.target);
+        }
+      });
+    }, {threshold: .12});
+    $$(".reveal").forEach((el, i)=>{
+      // stagger a touch if not already set
+      if(!el.style.animationDelay) el.style.animationDelay = (i*0.04)+"s";
+      io.observe(el);
+    });
+
+    // init
+    setView("dashboard");
+    renderTable();
+
+    // Quick command palette hint
+    window.addEventListener("keydown", (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        dlg.showModal();
+      }
+    });
+
+    // New movement (demo)
+    $("#btnNewMove").addEventListener("click", ()=>{
+      alert("No app Streamlit: abriria um st.form para ENTRADA/SAÍDA/AJUSTE com SKU, quantidade e custo/preço. Posso implementar o app.py completo.");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teste de Velocidade com Gráfico e Relógio</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+    button { padding: 10px 20px; font-size: 16px; }
+    #clock { font-size: 1.2rem; margin-top: 10px; font-weight: bold; }
+    #chartContainer { width: 100%; max-width: 700px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>Teste de Velocidade da Internet com Gráfico e Relógio</h1>
+  <button id="startTest">Iniciar Teste</button>
+  <div id="clock">Tempo: 00:00</div>
+  <div id="result"></div>
+  <div id="chartContainer">
+    <canvas id="speedChart"></canvas>
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    const resultDiv = document.getElementById('result');
+    const clockDiv = document.getElementById('clock');
+    const ctx = document.getElementById('speedChart').getContext('2d');
+
+    let chart = null;
+    let timerInterval = null;
+
+    function formatSpeed(bitsPerSecond) {
+      const kbps = bitsPerSecond / 1024;
+      const mbps = kbps / 1024;
+      if (mbps >= 1) return mbps.toFixed(2) + ' Mbps';
+      if (kbps >= 1) return kbps.toFixed(2) + ' Kbps';
+      return bitsPerSecond.toFixed(2) + ' bps';
+    }
+
+    async function getPublicIP() {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+      } catch (e) {
+        return 'Não foi possível obter o IP público.';
+      }
+    }
+
+    function startClock() {
+      let seconds = 0;
+      clockDiv.textContent = 'Tempo: 00:00';
+      timerInterval = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        clockDiv.textContent = `Tempo: ${m}:${s}`;
+      }, 1000);
+    }
+
+    function stopClock() {
+      clearInterval(timerInterval);
+    }
+
+    async function testDownloadSpeedWithProgress(onProgress) {
+      const imageUrl = "https://upload.wikimedia.org/wikipedia/commons/3/3f/Fronalpstock_big.jpg"; // ~5MB
+      const fileSizeBytes = 5242880;
+
+      const startTime = performance.now();
+      try {
+        const response = await fetch(imageUrl, {cache: "no-store"});
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+        while(true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          receivedLength += value.length;
+          const elapsed = (performance.now() - startTime) / 1000;
+          const bitsLoaded = receivedLength * 8;
+          const speedBps = bitsLoaded / elapsed;
+          onProgress(speedBps);
+        }
+        const endTime = performance.now();
+        const durationSeconds = (endTime - startTime) / 1000;
+        const bitsLoaded = fileSizeBytes * 8;
+        const speedBps = bitsLoaded / durationSeconds;
+        return speedBps;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function createChart() {
+      if(chart) {
+        chart.destroy();
+      }
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Velocidade (Mbps)',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: {
+              title: { display: true, text: 'Tempo (segundos)' }
+            },
+            y: {
+              title: { display: true, text: 'Velocidade (Mbps)' },
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            legend: { display: true }
+          }
+        }
+      });
+    }
+
+    document.getElementById('startTest').addEventListener('click', async () => {
+      resultDiv.textContent = 'Obtendo IP público...';
+      const ip = await getPublicIP();
+      resultDiv.textContent = `Seu IP público é: ${ip}\nIniciando teste de velocidade...`;
+
+      createChart();
+      startClock();
+
+      let secondsElapsed = 0;
+      const speeds = [];
+
+      const speed = await testDownloadSpeedWithProgress((speedBps) => {
+        secondsElapsed++;
+        speeds.push(speedBps / 1_000_000); // converter para Mbps
+        chart.data.labels.push(secondsElapsed.toString());
+        chart.data.datasets[0].data.push(speeds[speeds.length - 1]);
+        chart.update();
+      });
+
+      stopClock();
+
+      if (speed) {
+        resultDiv.textContent = `Seu IP público é: ${ip}\nVelocidade estimada de download: ${formatSpeed(speed)}`;
+      } else {
+        resultDiv.textContent = `Seu IP público é: ${ip}\nNão foi possível medir a velocidade.`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EstoquePro — App Completo (Streamlit) • Blueprint</title>
+  <meta name="description" content="Blueprint completo do app EstoquePro em Streamlit: cadastro, movimentações, alertas, relatórios, exportação CSV e auditoria." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400,600,700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Vibe: Swiss Utility + Warm Ledger (para estoque/financeiro) */
+      --bg: #fbf7f0;
+      --paper: rgba(255,255,255,.72);
+      --paper2: rgba(255,255,255,.54);
+      --ink: #141414;
+      --muted: rgba(20,20,20,.68);
+      --hair: rgba(20,20,20,.12);
+      --hair2: rgba(20,20,20,.18);
+
+      --accent: #b45a2a;  /* cobre */
+      --teal: #1f6f6d;
+      --warn: #a13b2a;
+
+      --shadow: 0 18px 40px rgba(20,20,20,.10);
+      --shadow2: 0 10px 28px rgba(20,20,20,.10);
+
+      --r1: 22px;
+      --r2: 16px;
+      --r3: 12px;
+
+      --display: "Fraunces", serif;
+      --body: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--body);
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 700px at 18% 10%, rgba(180,90,42,.16), transparent 60%),
+        radial-gradient(900px 540px at 85% 22%, rgba(31,111,109,.14), transparent 55%),
+        radial-gradient(900px 900px at 30% 100%, rgba(20,20,20,.06), transparent 60%),
+        linear-gradient(180deg, var(--bg), #f6f0e6 60%, #f3ecdf);
+      overflow-x:hidden;
+    }
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        repeating-linear-gradient(0deg, rgba(20,20,20,.018) 0 1px, transparent 1px 6px),
+        repeating-linear-gradient(90deg, rgba(20,20,20,.012) 0 1px, transparent 1px 7px);
+      mix-blend-mode:multiply;
+      opacity:.35;
+      filter: blur(.2px);
+    }
+
+    .wrap{
+      width:min(1200px, 92vw);
+      margin:0 auto;
+      padding: 28px 0 60px;
+      position:relative;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      padding: 14px 0 18px;
+    }
+    .brand{
+      display:flex;
+      align-items:flex-start;
+      gap:14px;
+    }
+    .mark{
+      width:46px;height:46px;border-radius:15px;
+      background:
+        radial-gradient(22px 22px at 32% 30%, rgba(255,255,255,.78), transparent 62%),
+        linear-gradient(145deg, rgba(180,90,42,.98), rgba(20,20,20,.92));
+      box-shadow: var(--shadow2);
+      position:relative;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .mark:after{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: conic-gradient(from 210deg, rgba(255,255,255,.0), rgba(255,255,255,.22), rgba(255,255,255,0));
+      transform: rotate(12deg);
+    }
+    .brand h1{
+      margin:0;
+      font-family: var(--display);
+      font-size: clamp(22px, 2.3vw, 32px);
+      line-height:1.02;
+      letter-spacing:.2px;
+    }
+    .brand p{
+      margin:7px 0 0;
+      color: var(--muted);
+      font-size: 13.5px;
+      max-width: 70ch;
+      line-height:1.35;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 6px 18px rgba(20,20,20,.07);
+      font-size: 13px;
+      color: rgba(20,20,20,.78);
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:99px;
+      background: var(--teal);
+      box-shadow: 0 0 0 5px rgba(31,111,109,.10);
+    }
+    .btn{
+      appearance:none;border:0;cursor:pointer;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 650;
+      letter-spacing:.15px;
+      background: rgba(20,20,20,.92);
+      color:#fff;
+      box-shadow: 0 12px 26px rgba(20,20,20,.16);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      display:inline-flex; align-items:center; gap:10px;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: 0 16px 34px rgba(20,20,20,.18); }
+    .btn:active{ transform: translateY(0) scale(.98); box-shadow: 0 10px 20px rgba(20,20,20,.16); }
+    .btn.secondary{
+      background: rgba(255,255,255,.58);
+      color: rgba(20,20,20,.88);
+      border: 1px solid var(--hair);
+      box-shadow: 0 10px 22px rgba(20,20,20,.10);
+    }
+    .btn.secondary:hover{ background: rgba(255,255,255,.72); }
+
+    main{
+      display:grid;
+      grid-template-columns: 370px 1fr;
+      gap: 18px;
+      margin-top: 18px;
+      align-items:start;
+    }
+
+    aside{
+      position: sticky;
+      top: 18px;
+      border-radius: var(--r1);
+      background: linear-gradient(180deg, rgba(255,255,255,.64), rgba(255,255,255,.44));
+      border: 1px solid var(--hair);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .aside-head{
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .aside-head h2{
+      margin:0;
+      font-family: var(--display);
+      font-size: 18px;
+    }
+    .aside-head .sub{
+      margin:6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.35;
+      max-width: 42ch;
+    }
+
+    .nav{
+      padding: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .nav button{
+      width:100%;
+      text-align:left;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 12px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      transition: background .15s ease, transform .15s ease, border-color .15s ease;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      color: rgba(20,20,20,.86);
+    }
+    .nav button:hover{
+      background: rgba(180,90,42,.08);
+      border-color: rgba(180,90,42,.18);
+      transform: translateY(-1px);
+    }
+    .nav button[aria-current="page"]{
+      background: rgba(20,20,20,.92);
+      color:#fff;
+      border-color: rgba(255,255,255,.12);
+      box-shadow: 0 10px 22px rgba(20,20,20,.15);
+    }
+    .k{
+      display:flex; align-items:center; gap:10px;
+      font-weight: 650;
+      font-size: 13.5px;
+      letter-spacing:.1px;
+    }
+    .icon{
+      width:26px;height:26px;border-radius: 10px;
+      display:grid;place-items:center;
+      background: rgba(20,20,20,.06);
+      border: 1px solid var(--hair);
+      flex: 0 0 auto;
+    }
+    .nav button[aria-current="page"] .icon{
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.14);
+    }
+    .badge{
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      color: rgba(20,20,20,.72);
+      white-space:nowrap;
+    }
+    .nav button[aria-current="page"] .badge{
+      border-color: rgba(255,255,255,.20);
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.86);
+    }
+    .aside-foot{
+      padding: 14px 18px 18px;
+      border-top: 1px solid var(--hair);
+      background: rgba(255,255,255,.35);
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 12px;
+      align-items:baseline;
+      font-size: 13px;
+      color: rgba(20,20,20,.78);
+    }
+    .kv b{ color: rgba(20,20,20,.92); font-weight: 700; }
+    .sep{ height:1px; background: var(--hair); margin: 10px 0; }
+
+    section{
+      border-radius: var(--r1);
+      border: 1px solid var(--hair);
+      background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.42));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .content-head{
+      padding: 20px 20px 12px;
+      border-bottom: 1px solid var(--hair);
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap:wrap;
+    }
+    .content-head h2{
+      margin:0;
+      font-family: var(--display);
+      font-size: clamp(22px, 2.5vw, 32px);
+      line-height:1.05;
+    }
+    .content-head p{
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 80ch;
+      line-height:1.45;
+    }
+    .head-right{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+
+    .pad{ padding: 16px 20px 20px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns: 1.2fr .9fr .9fr;
+      gap: 12px;
+    }
+    @media (max-width: 980px){
+      main{ grid-template-columns: 1fr; }
+      aside{ position:relative; top:0; }
+      .grid2, .grid3{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border-radius: 18px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.52);
+      padding: 14px;
+    }
+    .panel h3{
+      margin:0;
+      font-size: 13px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color: rgba(20,20,20,.62);
+    }
+    .panel .big{
+      margin: 10px 0 2px;
+      font-family: var(--display);
+      font-size: 28px;
+      letter-spacing:.2px;
+    }
+    .panel .small{
+      margin:0;
+      color: rgba(20,20,20,.66);
+      font-size: 13.5px;
+      line-height:1.35;
+    }
+    .mono{ font-family: var(--mono); }
+
+    .field{ display:flex; flex-direction:column; gap:7px; }
+    label{ font-size: 12.5px; color: rgba(20,20,20,.72); letter-spacing:.2px; }
+    input, select, textarea{
+      width:100%;
+      border-radius: 14px;
+      border: 1px solid var(--hair2);
+      background: rgba(255,255,255,.65);
+      padding: 10px 12px;
+      font-family: var(--body);
+      font-size: 14px;
+      color: rgba(20,20,20,.9);
+      outline:none;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    textarea{ min-height: 44px; resize: vertical; }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(180,90,42,.45);
+      box-shadow: 0 0 0 5px rgba(180,90,42,.12);
+    }
+
+    table{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow:hidden;
+      border-radius: 16px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      margin-top: 12px;
+    }
+    thead th{
+      text-align:left;
+      font-size: 12px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color: rgba(20,20,20,.62);
+      padding: 12px 12px;
+      background: rgba(255,255,255,.55);
+      border-bottom: 1px solid var(--hair);
+      font-weight: 800;
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(20,20,20,.08);
+      color: rgba(20,20,20,.86);
+      font-size: 14px;
+      vertical-align: top;
+    }
+    tbody tr:hover td{ background: rgba(31,111,109,.06); }
+    tbody tr:last-child td{ border-bottom: 0; }
+    .right{ text-align:right; }
+
+    .status{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.56);
+      white-space:nowrap;
+    }
+    .status.low{ border-color: rgba(161,59,42,.30); background: rgba(161,59,42,.08); color: rgba(161,59,42,.95);}
+    .status.ok{ border-color: rgba(31,111,109,.28); background: rgba(31,111,109,.08); color: rgba(31,111,109,.95);}
+    .status .s-dot{ width:8px;height:8px;border-radius:99px; background: currentColor; box-shadow: 0 0 0 5px rgba(0,0,0,.06);}
+
+    .callout{
+      border-radius: 18px;
+      border: 1px solid rgba(180,90,42,.22);
+      background: linear-gradient(180deg, rgba(180,90,42,.12), rgba(255,255,255,.34));
+      padding: 14px;
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
+      margin-top: 12px;
+    }
+    .callout h4{ margin:0; font-size: 14px; letter-spacing:.2px; }
+    .callout p{ margin:6px 0 0; color: rgba(20,20,20,.72); font-size: 13.5px; line-height:1.45; max-width: 85ch; }
+
+    .reveal{ opacity:0; transform: translateY(10px); }
+    .reveal.in{ animation: rise .7s cubic-bezier(.2,.8,.2,1) forwards; }
+    @keyframes rise{ to{ opacity:1; transform: translateY(0); } }
+
+    footer{
+      padding: 18px 0 0;
+      color: rgba(20,20,20,.62);
+      font-size: 13px;
+    }
+
+    dialog{
+      border:1px solid rgba(20,20,20,.18);
+      border-radius:18px;
+      padding:0;
+      width:min(860px, 92vw);
+      box-shadow: 0 26px 70px rgba(20,20,20,.22);
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(10px);
+    }
+    .dlg-head{
+      padding:18px 18px 12px;
+      border-bottom:1px solid rgba(20,20,20,.12);
+      display:flex; justify-content:space-between; gap:14px; align-items:center;
+    }
+    .dlg-title{
+      font-family: var(--display);
+      font-size: 20px;
+      letter-spacing:.1px;
+      margin:0;
+    }
+    .dlg-sub{ margin:6px 0 0; color: rgba(20,20,20,.68); font-size: 13.5px; }
+    .dlg-body{ padding:16px 18px 18px; }
+    pre{
+      margin:0;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(20,20,20,.12);
+      background: rgba(255,255,255,.58);
+      overflow:auto;
+      font-family: var(--mono);
+      font-size: 12.6px;
+      line-height:1.45;
+      color: rgba(20,20,20,.86);
+    }
+    .note{
+      margin-top:12px;
+      color: rgba(20,20,20,.72);
+      font-size: 13.5px;
+      line-height:1.45;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="reveal">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>EstoquePro</h1>
+          <p>
+            Você pediu “o app completo com tudo”. Abaixo está o <b>blueprint</b> do app Streamlit (telas + fluxos) e um
+            botão com o <b>esqueleto do projeto</b> para você copiar e colar no seu ambiente.
+          </p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <span class="pill"><span class="dot" aria-hidden="true"></span>Pronto para <span class="mono">streamlit run app.py</span></span>
+        <button class="btn secondary" type="button" id="btnOpenCode">
+          <span aria-hidden="true">⌘</span> Ver código (estrutura)
+        </button>
+        <button class="btn" type="button" id="btnSimulate">
+          <span aria-hidden="true">↻</span> Simular dados
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="reveal" style="animation-delay:.06s">
+        <div class="aside-head">
+          <h2>Sidebar (páginas)</h2>
+          <div class="sub">
+            No Streamlit: <span class="mono">st.sidebar.radio</span> com páginas.
+            Mantém o mesmo SQLite e regras do seu CLI.
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Páginas">
+          <button class="tab" data-tab="dashboard" aria-current="page">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 13.2V20h6.6v-6.8H4Z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M13.4 4v16H20V4h-6.6Z" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </span>
+              Dashboard & Alertas
+            </span>
+            <span class="badge" id="badgeLow">0 alertas</span>
+          </button>
+
+          <button class="tab" data-tab="cadastros">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Cadastros
+            </span>
+            <span class="badge">prod/cat/cli/forn</span>
+          </button>
+
+          <button class="tab" data-tab="movimentos">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 7h10v10H7z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M7 12h10" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </span>
+              Movimentações
+            </span>
+            <span class="badge">compra/venda/ajuste</span>
+          </button>
+
+          <button class="tab" data-tab="relatorios">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 3h10v18H7z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M9 7h6M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Relatórios & CSV
+            </span>
+            <span class="badge">saldo/valorização</span>
+          </button>
+
+          <button class="tab" data-tab="auditoria">
+            <span class="k">
+              <span class="icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 21s7-3.2 7-10V5l-7-2-7 2v6c0 6.8 7 10 7 10Z" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M9.5 12.3l1.7 1.7 3.8-4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Auditoria
+            </span>
+            <span class="badge">log</span>
+          </button>
+        </nav>
+
+        <div class="aside-foot">
+          <div class="kv">
+            <span>Banco</span><b class="mono">estoquepro.db</b>
+            <span>Fonte do saldo</span><b>Ledger</b>
+            <span>Custo médio</span><b>Entradas (+)</b>
+          </div>
+          <div class="sep"></div>
+          <div class="kv">
+            <span>Export</span><b class="mono">st.download_button</b>
+            <span>Data/hora</span><b class="mono">ISO</b>
+          </div>
+        </div>
+      </aside>
+
+      <section class="reveal" style="animation-delay:.12s">
+        <div class="content-head">
+          <div>
+            <h2 id="viewTitle">Dashboard & Alertas</h2>
+            <p id="viewDesc">
+              Indicadores: itens ativos, SKUs em alerta (saldo &lt; mínimo), valorização aproximada (saldo × custo médio) e uma tabela de saldo.
+            </p>
+          </div>
+          <div class="head-right">
+            <button class="btn secondary" type="button" id="btnCSV">
+              <span aria-hidden="true">⤓</span> Baixar CSV (demo)
+            </button>
+            <button class="btn" type="button" id="btnMove">
+              <span aria-hidden="true">＋</span> Registrar movimentação
+            </button>
+          </div>
+        </div>
+
+        <div class="pad">
+          <div class="grid3 reveal" style="animation-delay:.18s">
+            <div class="panel">
+              <h3>Produtos ativos</h3>
+              <div class="big" id="kpiAtivos">—</div>
+              <p class="small">No app: <span class="mono">SELECT COUNT(*) FROM produtos WHERE ativo=1</span></p>
+            </div>
+            <div class="panel">
+              <h3>Alertas (mínimo)</h3>
+              <div class="big" id="kpiAlertas">—</div>
+              <p class="small">Regra: <span class="mono">saldo &lt; estoque_minimo</span></p>
+            </div>
+            <div class="panel">
+              <h3>Valorização</h3>
+              <div class="big" id="kpiValor">—</div>
+              <p class="small">Aprox.: <span class="mono">Σ(saldo × custo_medio)</span></p>
+            </div>
+          </div>
+
+          <div class="callout reveal" style="animation-delay:.22s">
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+              <div class="icon" aria-hidden="true" style="background: rgba(180,90,42,.10); border-color: rgba(180,90,42,.22);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 9v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M12 17h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                  <path d="M10.3 4.7 3.2 18.2c-.4.8.2 1.8 1.1 1.8h15.4c.9 0 1.5-1 .1-1.8L13.7 4.7c-.4-.8-1.5-.8-1.9 0Z" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <div>
+                <h4>O que “app completo” significa aqui</h4>
+                <p>
+                  O Streamlit vai ter: <b>init do banco</b>, <b>cadastros</b> (prod/cat/forn/cli),
+                  <b>movimentações</b> (compra/venda/ajuste com ledger), <b>recalcular custo médio</b>,
+                  <b>alertas</b>, <b>relatórios por período</b>, <b>export CSV</b> e <b>auditoria</b>.
+                </p>
+              </div>
+            </div>
+            <button class="btn secondary" type="button" id="btnOpenCode2">Copiar estrutura</button>
+          </div>
+
+          <div class="reveal" style="animation-delay:.26s">
+            <table aria-label="Tabela de saldo">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th class="right">Saldo</th>
+                  <th class="right">Mínimo</th>
+                  <th class="right">Preço</th>
+                  <th class="right">Custo médio</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="reveal" style="animation-delay:.32s">
+      <span class="mono">Blueprint</span> visual. Eu consigo gerar o <span class="mono">app.py</span> real em Streamlit — mas preciso que você confirme:
+      <b>vai rodar local (SQLite arquivo)</b> ou <b>deploy (Streamlit Cloud)</b>?
+    </footer>
+  </div>
+
+  <dialog id="codeDlg" aria-label="Estrutura do projeto Streamlit">
+    <div class="dlg-head">
+      <div>
+        <p class="dlg-title">Estrutura recomendada (app completo)</p>
+        <p class="dlg-sub">Copie/cole. Isso vira um app real em Python com Streamlit + SQLite.</p>
+      </div>
+      <button class="btn secondary" type="button" id="btnCloseDlg">Fechar</button>
+    </div>
+    <div class="dlg-body">
+      <pre id="codeBlock"># Estrutura (recomendado)
+estoquepro/
+  app.py
+  db.py              # conexão + schema + helpers
+  services.py        # regras: estoque_atual, custo_medio, registrar_compra/venda/ajuste
+  reports.py         # queries de relatório + export
+  ui.py              # componentes (opcional)
+  requirements.txt
+  estoquepro.db      # gerado em runtime
+
+# requirements.txt
+streamlit&gt;=1.32
+pandas&gt;=2.1
+
+# Rodar
+# streamlit run app.py</pre>
+
+      <div class="note">
+        Se você confirmar <b>local</b> ou <b>Streamlit Cloud</b>, eu te entrego o código Python completo.
+        (Para Cloud, eu adapto o caminho do DB e incluo init automático.)
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const $ = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => [...el.querySelectorAll(q)];
+
+    function brl(v){
+      return "R$ " + (Math.round(v*100)/100).toFixed(2).replace(".", ",");
+    }
+
+    // Demo data (simula saldo + custo)
+    const data = [
+      {sku:"ACUCAR-1KG", nome:"Açúcar Refinado 1kg", cat:"Alimentos", saldo: 8, min: 12, preco: 6.90, custo: 4.70},
+      {sku:"DETERG-500", nome:"Detergente Neutro 500ml", cat:"Limpeza", saldo: 34, min: 10, preco: 3.50, custo: 2.10},
+      {sku:"CABO-USB-C", nome:"Cabo USB-C 1m (Trançado)", cat:"Eletrônicos", saldo: 5, min: 5, preco: 39.90, custo: 21.50},
+      {sku:"CAFE-500G", nome:"Café Torrado e Moído 500g", cat:"Alimentos", saldo: 2, min: 8, preco: 18.90, custo: 12.20},
+      {sku:"ALCOOL-70", nome:"Álcool 70% 1L", cat:"Limpeza", saldo: 11, min: 12, preco: 12.00, custo: 8.10},
+    ];
+
+    function render(){
+      const tbody = $("#tbody");
+      tbody.innerHTML = data.map(r=>{
+        const low = r.saldo < r.min;
+        return `
+          <tr>
+            <td class="mono">${r.sku}</td>
+            <td>${r.nome}</td>
+            <td>${r.cat}</td>
+            <td class="right mono">${r.saldo}</td>
+            <td class="right mono">${r.min}</td>
+            <td class="right">${brl(r.preco)}</td>
+            <td class="right">${brl(r.custo)}</td>
+            <td><span class="status ${low ? "low":"ok"}"><span class="s-dot" aria-hidden="true"></span>${low ? "Abaixo do mínimo":"OK"}</span></td>
+          </tr>
+        `;
+      }).join("");
+
+      const ativos = data.length;
+      const alertas = data.filter(r=>r.saldo < r.min).length;
+      const valor = data.reduce((acc,r)=>acc + (r.saldo * r.custo), 0);
+
+      $("#kpiAtivos").textContent = String(ativos);
+      $("#kpiAlertas").textContent = String(alertas);
+      $("#kpiValor").textContent = brl(valor);
+      $("#badgeLow").textContent = `${alertas} alertas`;
+    }
+
+    // Tabs (only text changes in blueprint)
+    const views = {
+      dashboard: {
+        t:"Dashboard & Alertas",
+        d:"Indicadores: itens ativos, SKUs em alerta (saldo < mínimo), valorização aproximada (saldo × custo médio) e uma tabela de saldo."
+      },
+      cadastros: {
+        t:"Cadastros",
+        d:"Produtos, categorias, fornecedores e clientes. No Streamlit: formulários com validação e listagens com filtros."
+      },
+      movimentos: {
+        t:"Movimentações",
+        d:"Compras (entrada), vendas (saída) e ajustes (+/-). Cada ação gera item no ledger e recalcula custo médio quando aplicável."
+      },
+      relatorios: {
+        t:"Relatórios & CSV",
+        d:"Saldo, valorização por custo médio simples e movimentação por período. Exportação via st.download_button."
+      },
+      auditoria: {
+        t:"Auditoria",
+        d:"Log de ações (INIT_DB, CAD_PRODUTO, COMPRA, VENDA, AJUSTE, EXPORT etc.) para rastreabilidade."
+      }
+    };
+
+    function setView(key){
+      const v = views[key] || views.dashboard;
+      $("#viewTitle").textContent = v.t;
+      $("#viewDesc").textContent = v.d;
+    }
+
+    $$(".tab").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        $$(".tab").forEach(b=>b.removeAttribute("aria-current"));
+        btn.setAttribute("aria-current","page");
+        setView(btn.dataset.tab);
+      });
+    });
+
+    // Dialog
+    const dlg = $("#codeDlg");
+    function openDlg(){ dlg.showModal(); }
+    $("#btnOpenCode").addEventListener("click", openDlg);
+    $("#btnOpenCode2").addEventListener("click", openDlg);
+    $("#btnCloseDlg").addEventListener("click", ()=>dlg.close());
+    dlg.addEventListener("click", (e)=>{
+      const r = dlg.getBoundingClientRect();
+      const inside = r.top <= e.clientY && e.clientY <= r.bottom && r.left <= e.clientX && e.clientX <= r.right;
+      if(!inside) dlg.close();
+    });
+
+    // Simulate
+    $("#btnSimulate").addEventListener("click", ()=>{
+      data.forEach(r=>{
+        const delta = Math.round((Math.random()*8 - 4));
+        r.saldo = Math.max(0, r.saldo + delta);
+        // tiny cost drift
+        r.custo = Math.max(0, Math.round((r.custo + (Math.random()-.5)*0.6)*100)/100);
+      });
+      render();
+    });
+
+    // CSV demo
+    $("#btnCSV").addEventListener("click", ()=>{
+      const header = ["sku","nome","categoria","saldo","minimo","preco_venda","custo_medio"];
+      const lines = [header.join(",")].concat(data.map(r =>
+        [r.sku, `"${r.nome.replaceAll('"','""')}"`, r.cat, r.saldo, r.min, r.preco, r.custo].join(",")
+      ));
+      const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "estoquepro_export.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Move button (blueprint)
+    $("#btnMove").addEventListener("click", ()=>{
+      alert("No app Streamlit real: abriria formulário para COMPRA/VENDA/AJUSTE e gravaria em SQLite (movimentos, compras/vendas, itens) + auditoria.");
+    });
+
+    // Reveal on scroll
+    const io = new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        if(en.isIntersecting){
+          en.target.classList.add("in");
+          io.unobserve(en.target);
+        }
+      });
+    }, {threshold: .12});
+    $$(".reveal").forEach((el,i)=>{
+      if(!el.style.animationDelay) el.style.animationDelay = (i*0.04)+"s";
+      io.observe(el);
+    });
+
+    // init
+    setView("dashboard");
+    render();
+  </script>
+</body>
+</html>

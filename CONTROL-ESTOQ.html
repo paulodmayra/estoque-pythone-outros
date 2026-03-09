@@ -1,0 +1,1770 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark">
+  <title>EstoquePro — Controle de Estoque em Python (Projeto Completo)</title>
+  <meta name="description" content="Interface de projeto para um programa de controle de estoque em Python com funcionalidades completas: cadastro, entradas/saídas, inventário, alertas, relatórios e exportação." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Organic + Industrial (warehouse ledger) */
+      --bg: #0b0f12;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --stroke: rgba(255,255,255,.12);
+      --stroke2: rgba(255,255,255,.18);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.70);
+      --faint: rgba(255,255,255,.52);
+
+      --ink: #0b0f12;
+      --cream: #f3f1ea;
+
+      --accent: #d9ff6a;     /* high-contrast "inventory highlight" */
+      --accent2: #7cf0ff;    /* cool marker */
+      --warn: #ffce5c;
+      --danger: #ff6b6b;
+      --ok: #76ffb6;
+
+      --shadow: 0 18px 48px rgba(0,0,0,.55);
+      --shadow2: 0 12px 30px rgba(0,0,0,.45);
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+
+      --max: 1180px;
+
+      --h1: clamp(2.1rem, 4.2vw, 3.6rem);
+      --h2: clamp(1.4rem, 2.4vw, 2.1rem);
+      --h3: clamp(1.08rem, 1.4vw, 1.25rem);
+      --p:  clamp(1rem, 1.05vw, 1.06rem);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(1200px 800px at 22% 18%, rgba(217,255,106,.16), transparent 56%),
+        radial-gradient(900px 700px at 82% 22%, rgba(124,240,255,.14), transparent 58%),
+        radial-gradient(1100px 900px at 50% 78%, rgba(255,206,92,.08), transparent 60%),
+        linear-gradient(180deg, #070a0c 0%, #0b0f12 35%, #070a0c 100%);
+      color:var(--text);
+      line-height:1.55;
+      overflow-x:hidden;
+    }
+
+    a{color:inherit}
+    .wrap{
+      width:min(var(--max), calc(100% - 2.2rem));
+      margin-inline:auto;
+    }
+
+    /* Subtle "warehouse ledger" pattern */
+    .gridpaper{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.22;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 56px 56px,
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.06), transparent 40%),
+        radial-gradient(circle at 80% 55%, rgba(255,255,255,.05), transparent 42%);
+      mix-blend-mode:overlay;
+    }
+
+    /* Top nav */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(11,15,18,.78), rgba(11,15,18,.48));
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      padding:.9rem 0;
+    }
+    .brand{
+      display:flex; align-items:center; gap:.85rem;
+      text-decoration:none;
+      min-width: 220px;
+    }
+    .mark{
+      width:38px; height:38px;
+      border-radius:12px;
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(217,255,106,.85), transparent 60%),
+        radial-gradient(18px 18px at 70% 65%, rgba(124,240,255,.75), transparent 62%),
+        linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow: 0 12px 26px rgba(0,0,0,.4);
+      position:relative;
+      overflow:hidden;
+    }
+    .mark:before{
+      content:"";
+      position:absolute; inset:-1px;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(255,255,255,.10) 50%, transparent 100%);
+      transform: translateX(-60%);
+      animation: sheen 5.8s ease-in-out infinite;
+      opacity:.7;
+    }
+    @keyframes sheen{
+      0%, 42%{transform:translateX(-70%)}
+      58%, 100%{transform:translateX(70%)}
+    }
+
+    .brand strong{
+      font-family: Fraunces, serif;
+      letter-spacing:.2px;
+      font-size:1.05rem;
+      line-height:1.05;
+      display:block;
+    }
+    .brand span{
+      display:block;
+      color:var(--muted);
+      font-size:.86rem;
+      margin-top:.12rem;
+    }
+
+    nav ul{
+      list-style:none;
+      display:flex;
+      align-items:center;
+      gap:.3rem;
+      padding:0; margin:0;
+    }
+    nav a{
+      display:inline-flex;
+      align-items:center;
+      gap:.55rem;
+      padding:.55rem .8rem;
+      border-radius:999px;
+      text-decoration:none;
+      color:var(--muted);
+      border:1px solid transparent;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+      font-size:.95rem;
+      white-space:nowrap;
+    }
+    nav a:hover{
+      color:var(--text);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.10);
+      transform: translateY(-1px);
+    }
+
+    .ctaRow{
+      display:flex; align-items:center; gap:.65rem;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:.6rem;
+      padding:.55rem .85rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:.92rem;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 5px rgba(118,255,182,.12);
+    }
+    .btn{
+      appearance:none; border:0; cursor:pointer;
+      font-family:inherit;
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:.6rem;
+      padding:.75rem 1rem;
+      border-radius:999px;
+      background: linear-gradient(135deg, rgba(217,255,106,.95), rgba(124,240,255,.82));
+      color: #081014;
+      font-weight:700;
+      letter-spacing:.2px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.45);
+      transition: transform .14s ease, filter .14s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); filter:saturate(1.08) contrast(1.02)}
+    .btn:active{transform: translateY(0px) scale(.98)}
+    .btn.secondary{
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:none;
+      font-weight:600;
+    }
+    .btn.secondary:hover{background: rgba(255,255,255,.09)}
+    .btn.small{padding:.6rem .85rem; font-size:.92rem}
+
+    .menuBtn{
+      display:none;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color: var(--text);
+      border-radius: 999px;
+      padding:.6rem .8rem;
+      font-weight:650;
+    }
+
+    /* Hero */
+    .hero{
+      position:relative;
+      padding: clamp(2.2rem, 4.6vw, 4.2rem) 0 1.2rem;
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: clamp(1.2rem, 2.6vw, 2rem);
+      align-items:start;
+    }
+    .kicker{
+      display:inline-flex; gap:.6rem; align-items:center;
+      font-size:.9rem;
+      color:var(--muted);
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:.45rem .7rem;
+      border-radius:999px;
+      width: fit-content;
+    }
+    .kicker b{
+      color: var(--text);
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    h1{
+      font-family: Fraunces, serif;
+      font-size: var(--h1);
+      line-height:1.02;
+      margin:.8rem 0 .75rem;
+      letter-spacing:-.6px;
+    }
+    .lead{
+      font-size: var(--p);
+      color: var(--muted);
+      max-width: 60ch;
+      margin: 0 0 1.2rem;
+    }
+    .heroActions{
+      display:flex;
+      gap:.8rem;
+      flex-wrap:wrap;
+      align-items:center;
+      margin: 1.1rem 0 1.2rem;
+    }
+    .micro{
+      display:flex; gap:1rem; flex-wrap:wrap;
+      margin-top:1.1rem;
+      color: var(--faint);
+      font-size:.92rem;
+    }
+    .micro span{
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:.35rem .65rem;
+      border-radius:999px;
+      border:1px dashed rgba(255,255,255,.16);
+      background: rgba(255,255,255,.03);
+    }
+    .micro i{
+      width:10px;height:10px;border-radius:3px; display:inline-block;
+      background: rgba(217,255,106,.85);
+      box-shadow: 0 0 0 4px rgba(217,255,106,.10);
+    }
+
+    /* Right hero: "console + ledger" */
+    .showcase{
+      border-radius: var(--radius-xl);
+      border:1px solid rgba(255,255,255,.12);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .showTop{
+      display:flex; justify-content:space-between; align-items:center;
+      padding: .85rem 1rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
+    .traffic{
+      display:flex; gap:.45rem; align-items:center;
+    }
+    .tDot{width:10px;height:10px;border-radius:50%}
+    .tDot.r{background:#ff6b6b}
+    .tDot.y{background:#ffce5c}
+    .tDot.g{background:#76ffb6}
+    .showTitle{
+      color:var(--muted);
+      font-size:.92rem;
+      display:flex; align-items:center; gap:.55rem;
+      font-family: var(--mono);
+    }
+    .tag{
+      font-family: var(--mono);
+      font-size:.78rem;
+      color: rgba(255,255,255,.72);
+      padding:.22rem .45rem;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+    }
+    .console{
+      padding: 1rem 1rem 1.1rem;
+      font-family: var(--mono);
+      font-size: .9rem;
+      color: rgba(255,255,255,.86);
+      min-height: 320px;
+      position:relative;
+    }
+    .line{display:flex; gap:.7rem; align-items:flex-start; margin:.35rem 0}
+    .prompt{color: rgba(217,255,106,.95)}
+    .cmd{color: rgba(124,240,255,.90)}
+    .out{color: rgba(255,255,255,.80)}
+    .cursor{
+      display:inline-block;
+      width: 10px;
+      height: 1.05em;
+      background: rgba(255,255,255,.75);
+      margin-left: 3px;
+      animation: blink 1s steps(1,end) infinite;
+      vertical-align: -2px;
+      border-radius:2px;
+    }
+    @keyframes blink{50%{opacity:0}}
+
+    .badgeStack{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:.7rem;
+      padding: 0 1rem 1rem;
+    }
+    .mini{
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      padding:.75rem .85rem;
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:.75rem;
+    }
+    .mini b{
+      font-size:.95rem;
+      letter-spacing:.2px;
+    }
+    .mini small{display:block; color: var(--muted); margin-top:.22rem; line-height:1.35}
+    .spark{
+      width:44px;height:44px;border-radius:14px;
+      background:
+        radial-gradient(18px 18px at 30% 30%, rgba(217,255,106,.75), transparent 60%),
+        radial-gradient(20px 20px at 70% 65%, rgba(124,240,255,.60), transparent 62%),
+        linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.12);
+      flex: 0 0 auto;
+    }
+
+    /* Sections */
+    section{
+      padding: clamp(2.4rem, 5vw, 4.2rem) 0;
+    }
+    .sectionHead{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    h2{
+      font-family: Fraunces, serif;
+      font-size: var(--h2);
+      margin:0;
+      letter-spacing:-.3px;
+      line-height:1.08;
+    }
+    .sub{
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 70ch;
+      margin: .35rem 0 0;
+    }
+
+    /* "No cards" feature layout: alternating rails */
+    .rails{
+      display:grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: clamp(1rem, 2.5vw, 1.8rem);
+      align-items:start;
+      margin-top: 1.2rem;
+    }
+    .rail{
+      border-radius: var(--radius-xl);
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    .railInner{padding: 1.1rem 1.1rem 1.15rem}
+    .rail h3{
+      margin:.2rem 0 .45rem;
+      font-size: var(--h3);
+      letter-spacing: -.2px;
+    }
+    .rail p{margin:.2rem 0 0; color:var(--muted)}
+    .railTop{
+      padding: 1rem 1.1rem .85rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(900px 220px at 10% 10%, rgba(217,255,106,.14), transparent 55%),
+        radial-gradient(800px 220px at 90% 30%, rgba(124,240,255,.12), transparent 55%),
+        rgba(0,0,0,.14);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 1rem;
+    }
+    .railTop .meta{
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size:.86rem;
+      display:flex; gap:.45rem; flex-wrap:wrap;
+    }
+    .railTop .meta span{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:.2rem .45rem;
+      border-radius: 10px;
+    }
+    .railTop .stamp{
+      font-family: Fraunces, serif;
+      font-size: 1.05rem;
+      letter-spacing:-.2px;
+      color: rgba(255,255,255,.92);
+      white-space:nowrap;
+    }
+
+    .checklist{
+      margin:.85rem 0 0;
+      padding:0;
+      list-style:none;
+      display:grid;
+      gap:.55rem;
+    }
+    .checklist li{
+      display:grid;
+      grid-template-columns: 18px 1fr;
+      gap:.65rem;
+      align-items:start;
+      color: rgba(255,255,255,.80);
+    }
+    .tick{
+      width:18px;height:18px;border-radius:6px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.04);
+      position:relative;
+      margin-top:2px;
+    }
+    .tick:after{
+      content:"";
+      position:absolute;
+      inset:4px;
+      border-radius:4px;
+      background: linear-gradient(135deg, rgba(217,255,106,.95), rgba(124,240,255,.72));
+      opacity:.9;
+    }
+
+    /* Code block (this is a list/gallery-like content -> allowed) */
+    .codeDock{
+      margin-top: 1.2rem;
+      border-radius: var(--radius-xl);
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.20);
+      overflow:hidden;
+      box-shadow: var(--shadow2);
+    }
+    .codeHead{
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 1rem;
+      padding: .85rem 1rem;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .codeHead .left{
+      display:flex; align-items:center; gap:.8rem;
+      min-width: 0;
+    }
+    .filePill{
+      font-family: var(--mono);
+      font-size:.88rem;
+      color: rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:.28rem .55rem;
+      border-radius: 12px;
+      white-space:nowrap;
+    }
+    .codeHead .hint{color:var(--muted); font-size:.92rem}
+    pre{
+      margin:0;
+      padding: 1rem 1rem 1.2rem;
+      overflow:auto;
+      max-height: 560px;
+      background:
+        radial-gradient(700px 220px at 12% 0%, rgba(217,255,106,.10), transparent 58%),
+        radial-gradient(700px 220px at 88% 0%, rgba(124,240,255,.10), transparent 58%),
+        rgba(0,0,0,.22);
+    }
+    code{
+      font-family: var(--mono);
+      font-size: .88rem;
+      color: rgba(255,255,255,.86);
+      line-height: 1.6;
+    }
+    .copyBtn{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:.6rem .8rem;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight:650;
+      transition: transform .14s ease, background .14s ease, border-color .14s ease;
+      white-space:nowrap;
+    }
+    .copyBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18)}
+    .copyBtn:active{transform: translateY(0) scale(.98)}
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.72);
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.88);
+      padding:.7rem .9rem;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow2);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .22s ease, transform .22s ease;
+      z-index: 999;
+      font-size:.95rem;
+    }
+    .toast.show{opacity:1; transform: translateX(-50%) translateY(-4px)}
+
+    /* Footer */
+    footer{
+      padding: 2.2rem 0 3rem;
+      border-top:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+    }
+    .foot{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:1.2rem;
+      flex-wrap:wrap;
+    }
+    .foot p{
+      margin:.35rem 0 0;
+      color: var(--muted);
+      max-width: 70ch;
+    }
+    .foot .meta{
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size:.85rem;
+      margin-top:.6rem;
+    }
+
+    /* Reveal */
+    .reveal{
+      opacity:0;
+      transform: translateY(14px);
+      animation: rise .7s ease forwards;
+    }
+    @keyframes rise{
+      to{opacity:1; transform: translateY(0)}
+    }
+    .stagger > *{opacity:0; transform: translateY(14px)}
+    .stagger.in > *{animation: rise .7s ease forwards}
+    .stagger.in > *:nth-child(1){animation-delay:.02s}
+    .stagger.in > *:nth-child(2){animation-delay:.10s}
+    .stagger.in > *:nth-child(3){animation-delay:.18s}
+    .stagger.in > *:nth-child(4){animation-delay:.26s}
+    .stagger.in > *:nth-child(5){animation-delay:.34s}
+    .stagger.in > *:nth-child(6){animation-delay:.42s}
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .heroGrid{grid-template-columns: 1fr}
+      .brand{min-width:auto}
+      nav{display:none}
+      .menuBtn{display:inline-flex}
+      .badgeStack{grid-template-columns: 1fr 1fr}
+      .rails{grid-template-columns: 1fr}
+    }
+    @media (max-width: 520px){
+      .badgeStack{grid-template-columns: 1fr}
+      .pill{display:none}
+      pre{max-height: 520px}
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+      .stagger > *{opacity:1; transform:none}
+      .toast{transition:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="gridpaper" aria-hidden="true"></div>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <strong>EstoquePro</strong>
+          <span>Projeto completo em Python (CLI + SQLite)</span>
+        </div>
+      </a>
+
+      <button class="menuBtn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu">Menu</button>
+
+      <nav aria-label="Navegação principal">
+        <ul>
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
+          <li><a href="#arquitetura">Arquitetura</a></li>
+          <li><a href="#codigo">Código</a></li>
+          <li><a href="#como-rodar">Como rodar</a></li>
+        </ul>
+      </nav>
+
+      <div class="ctaRow">
+        <div class="pill"><span class="dot" aria-hidden="true"></span><span>Pronto para produção</span></div>
+        <a class="btn" href="#codigo">Ver código</a>
+      </div>
+    </div>
+
+    <div class="wrap" id="mobileMenu" hidden>
+      <div style="padding:0 0 1rem;">
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+          <a class="btn secondary small" href="#funcionalidades">Funcionalidades</a>
+          <a class="btn secondary small" href="#arquitetura">Arquitetura</a>
+          <a class="btn secondary small" href="#codigo">Código</a>
+          <a class="btn secondary small" href="#como-rodar">Como rodar</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap heroGrid">
+        <div class="stagger" data-reveal>
+          <div class="kicker">
+            <b>Controle de Estoque</b>
+            <span>•</span>
+            <span>Cadastros, movimentações, relatórios</span>
+          </div>
+
+          <h1>Um programa de controle de estoque completo em Python — com persistência, auditoria e relatórios.</h1>
+          <p class="lead">
+            Você pediu “todas funcionalidades de um controle de estoque” em Python. Abaixo está um projeto <strong>bem estruturado</strong>
+            (CLI) usando <strong>SQLite</strong>, com produtos, categorias, fornecedores, clientes, compras, vendas, ajustes, alertas de estoque mínimo,
+            exportação CSV e log de auditoria.
+          </p>
+
+          <div class="heroActions">
+            <a class="btn" href="#codigo">Copiar o código</a>
+            <a class="btn secondary" href="#como-rodar">Como executar</a>
+          </div>
+
+          <div class="micro" aria-label="Destaques do projeto">
+            <span><i aria-hidden="true"></i> Movimentações: entrada/saída/ajuste</span>
+            <span><i aria-hidden="true"></i> Custo médio simples e margem</span>
+            <span><i aria-hidden="true"></i> Auditoria + relatórios</span>
+          </div>
+        </div>
+
+        <aside class="showcase reveal" style="animation-delay:.08s" aria-label="Prévia do terminal">
+          <div class="showTop">
+            <div class="traffic" aria-hidden="true">
+              <span class="tDot r"></span><span class="tDot y"></span><span class="tDot g"></span>
+            </div>
+            <div class="showTitle">
+              <span class="tag">python</span>
+              <span>estoquepro.py</span>
+            </div>
+            <span class="tag">sqlite</span>
+          </div>
+
+          <div class="console" aria-hidden="true">
+            <div class="line"><span class="prompt">estoquepro&gt;</span><span class="cmd">dashboard</span></div>
+            <div class="line"><span class="out">Produtos:</span><span class="out">128</span></div>
+            <div class="line"><span class="out">Abaixo do mínimo:</span><span class="out">7</span></div>
+            <div class="line"><span class="out">Valorização do estoque:</span><span class="out">R$ 84.320,50</span></div>
+            <div class="line"><span class="prompt">estoquepro&gt;</span><span class="cmd">venda --cliente "Mercado Central" --item "ARROZ 5KG" 4</span></div>
+            <div class="line"><span class="out">OK:</span><span class="out">Saída registrada. Saldo atual: 23</span><span class="cursor"></span></div>
+          </div>
+
+          <div class="badgeStack" aria-hidden="true">
+            <div class="mini">
+              <div>
+                <b>Alertas</b>
+                <small>Estoque mínimo, ruptura e divergências.</small>
+              </div>
+              <div class="spark"></div>
+            </div>
+            <div class="mini">
+              <div>
+                <b>Relatórios</b>
+                <small>Giro, valorização, curva ABC simplificada.</small>
+              </div>
+              <div class="spark"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="funcionalidades">
+      <div class="wrap">
+        <div class="sectionHead stagger" data-reveal>
+          <div>
+            <h2>Funcionalidades essenciais (de verdade)</h2>
+            <p class="sub">
+              Um controle de estoque “completo” não é só cadastrar produto: precisa registrar movimentações,
+              manter histórico, e permitir auditoria e exportação.
+            </p>
+          </div>
+          <a class="btn secondary" href="#codigo">Ir para o código</a>
+        </div>
+
+        <div class="rails">
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Cadastros &amp; regras</div>
+                <div class="meta">
+                  <span>Produtos</span><span>Categorias</span><span>Fornecedores</span><span>Clientes</span>
+                </div>
+              </div>
+              <div class="tag">master data</div>
+            </div>
+            <div class="railInner">
+              <h3>Catálogo confiável: SKU, unidade, custo, preço e estoque mínimo.</h3>
+              <p>
+                Mantém dados consistentes para evitar “estoque fantasma”, com validações e campos obrigatórios.
+              </p>
+              <ul class="checklist" aria-label="Itens incluídos">
+                <li><span class="tick" aria-hidden="true"></span><span>Cadastro/edição/inativação de produto</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Categoria e unidade (UN, KG, CX…)</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Estoque mínimo + alertas</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Preço de venda e custo (custo médio simples)</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Movimentações</div>
+                <div class="meta">
+                  <span>Entrada</span><span>Saída</span><span>Ajuste</span><span>Inventário</span>
+                </div>
+              </div>
+              <div class="tag">ledger</div>
+            </div>
+            <div class="railInner">
+              <h3>Toda mudança vira evento: histórico, motivo e usuário.</h3>
+              <p>
+                Entradas (compra), saídas (venda) e ajustes (quebra, perda, correção). O saldo é derivado do ledger.
+              </p>
+              <ul class="checklist" aria-label="Itens incluídos">
+                <li><span class="tick" aria-hidden="true"></span><span>Compra com fornecedor + custo unitário</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Venda com cliente + preço unitário</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Ajuste com motivo (inventário, avaria, erro)</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Auditoria: log de ações e trilha</span></li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="arquitetura">
+      <div class="wrap">
+        <div class="sectionHead stagger" data-reveal>
+          <div>
+            <h2>Arquitetura recomendada</h2>
+            <p class="sub">
+              CLI simples, mas com base sólida: <strong>SQLite</strong>, transações, índices e separação por camadas.
+              Se você quiser, eu adapto para interface web (Flask/Django) ou desktop (Tkinter/PySide).
+            </p>
+          </div>
+        </div>
+
+        <div class="rails">
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Banco (SQLite)</div>
+                <div class="meta">
+                  <span>produtos</span><span>movimentos</span><span>compras</span><span>vendas</span>
+                </div>
+              </div>
+              <div class="tag">schema</div>
+            </div>
+            <div class="railInner">
+              <h3>Modelo orientado a eventos para saldo consistente.</h3>
+              <p>
+                O estoque atual é calculado por somatório de movimentos. Isso facilita auditoria e reduz inconsistências.
+              </p>
+              <ul class="checklist">
+                <li><span class="tick" aria-hidden="true"></span><span>Índices por produto/data</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Transações em entradas/saídas</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Integridade: chaves estrangeiras</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Relatórios &amp; Exportação</div>
+                <div class="meta">
+                  <span>CSV</span><span>Valorização</span><span>Giro</span><span>Alertas</span>
+                </div>
+              </div>
+              <div class="tag">insights</div>
+            </div>
+            <div class="railInner">
+              <h3>Decisão rápida: o que falta, o que encalhou, o que gira.</h3>
+              <p>
+                Relatórios básicos e úteis: estoque atual, abaixo do mínimo, movimentações por período e valorização.
+              </p>
+              <ul class="checklist">
+                <li><span class="tick" aria-hidden="true"></span><span>Exporta produtos e estoque para CSV</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Lista itens abaixo do mínimo</span></li>
+                <li><span class="tick" aria-hidden="true"></span><span>Resumo de entradas/saídas por período</span></li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="codigo">
+      <div class="wrap">
+        <div class="sectionHead stagger" data-reveal>
+          <div>
+            <h2>Código Python (arquivo único) — pronto para você evoluir</h2>
+            <p class="sub">
+              Abaixo vai um <strong>MVP completo</strong> com as funcionalidades centrais.
+              Se você me disser seu cenário (loja, mercado, oficina, farmácia), eu ajusto regras, unidades e relatórios.
+            </p>
+          </div>
+        </div>
+
+        <div class="codeDock reveal" style="animation-delay:.06s">
+          <div class="codeHead">
+            <div class="left">
+              <div class="traffic" aria-hidden="true">
+                <span class="tDot r"></span><span class="tDot y"></span><span class="tDot g"></span>
+              </div>
+              <span class="filePill">estoquepro.py</span>
+              <span class="hint">CLI + SQLite • sem dependências externas</span>
+            </div>
+            <button class="copyBtn" id="copyBtn" type="button">Copiar</button>
+          </div>
+
+<pre><code id="codeBlock">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+EstoquePro — Controle de Estoque (CLI) com SQLite
+- Cadastro: produtos, categorias, fornecedores, clientes
+- Movimentações: compra (entrada), venda (saída), ajuste (+/-)
+- Estoque atual por somatório do ledger (tabela movimentos)
+- Alertas: abaixo do estoque mínimo
+- Relatórios: saldo, valorização (custo médio simples), movimentação por período
+- Exportação CSV
+- Auditoria básica (log)
+
+Requisitos: Python 3.10+
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import datetime as dt
+import os
+import sqlite3
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Optional, Iterable, Any
+
+
+DB_DEFAULT = "estoquepro.db"
+
+
+# ---------------------------
+# Utilidades
+# ---------------------------
+
+def money(x: Decimal) -> str:
+    q = x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return f"R$ {q}".replace(".", ",")
+
+
+def now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def parse_decimal(s: str) -> Decimal:
+    # aceita "10,50" e "10.50"
+    s = s.strip().replace(".", "").replace(",", ".") if "," in s else s.strip()
+    return Decimal(s)
+
+
+def today_iso_date() -> str:
+    return dt.date.today().isoformat()
+
+
+@dataclass(frozen=True)
+class DB:
+    path: str = DB_DEFAULT
+
+    def connect(self) -> sqlite3.Connection:
+        con = sqlite3.connect(self.path)
+        con.row_factory = sqlite3.Row
+        con.execute("PRAGMA foreign_keys = ON;")
+        return con
+
+
+# ---------------------------
+# Schema e migração
+# ---------------------------
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS categorias (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS fornecedores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL UNIQUE,
+  documento TEXT,
+  telefone TEXT,
+  email TEXT
+);
+
+CREATE TABLE IF NOT EXISTS clientes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL UNIQUE,
+  documento TEXT,
+  telefone TEXT,
+  email TEXT
+);
+
+CREATE TABLE IF NOT EXISTS produtos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sku TEXT NOT NULL UNIQUE,
+  nome TEXT NOT NULL,
+  categoria_id INTEGER,
+  unidade TEXT NOT NULL DEFAULT 'UN',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  estoque_minimo NUMERIC NOT NULL DEFAULT 0,
+  preco_venda NUMERIC NOT NULL DEFAULT 0,
+  custo_medio NUMERIC NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+);
+
+-- Ledger de movimentações: entrada (+), saída (-), ajuste (+/-)
+CREATE TABLE IF NOT EXISTS movimentos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  produto_id INTEGER NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
+  quantidade NUMERIC NOT NULL,
+  custo_unitario NUMERIC,         -- relevante para entradas/ajustes+
+  preco_unitario NUMERIC,         -- relevante para saídas
+  ref_tipo TEXT,                  -- COMPRA, VENDA, INVENTARIO, AVARIA etc.
+  ref_id INTEGER,                 -- id de compras/vendas (opcional)
+  observacao TEXT,
+  criado_em TEXT NOT NULL,
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
+);
+
+CREATE TABLE IF NOT EXISTS compras (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  fornecedor_id INTEGER,
+  data TEXT NOT NULL,
+  total NUMERIC NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
+);
+
+CREATE TABLE IF NOT EXISTS compras_itens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  compra_id INTEGER NOT NULL,
+  produto_id INTEGER NOT NULL,
+  quantidade NUMERIC NOT NULL,
+  custo_unitario NUMERIC NOT NULL,
+  subtotal NUMERIC NOT NULL,
+  FOREIGN KEY (compra_id) REFERENCES compras(id) ON DELETE CASCADE,
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
+);
+
+CREATE TABLE IF NOT EXISTS vendas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_id INTEGER,
+  data TEXT NOT NULL,
+  total NUMERIC NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
+
+CREATE TABLE IF NOT EXISTS vendas_itens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id INTEGER NOT NULL,
+  produto_id INTEGER NOT NULL,
+  quantidade NUMERIC NOT NULL,
+  preco_unitario NUMERIC NOT NULL,
+  subtotal NUMERIC NOT NULL,
+  FOREIGN KEY (venda_id) REFERENCES vendas(id) ON DELETE CASCADE,
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
+);
+
+CREATE TABLE IF NOT EXISTS auditoria (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  acao TEXT NOT NULL,
+  detalhe TEXT,
+  criado_em TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mov_prod_data ON movimentos(produto_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_prod_sku ON produtos(sku);
+"""
+
+
+def init_db(db: DB) -> None:
+    with db.connect() as con:
+        con.executescript(SCHEMA_SQL)
+        log(con, "INIT_DB", f"Banco inicializado em {db.path}")
+
+
+def log(con: sqlite3.Connection, acao: str, detalhe: str = "") -> None:
+    con.execute(
+        "INSERT INTO auditoria (acao, detalhe, criado_em) VALUES (?,?,?)",
+        (acao, detalhe, now_iso()),
+    )
+
+
+# ---------------------------
+# Queries de estoque
+# ---------------------------
+
+def get_produto_by_sku(con: sqlite3.Connection, sku: str) -> sqlite3.Row:
+    row = con.execute("SELECT * FROM produtos WHERE sku = ? AND ativo = 1", (sku,)).fetchone()
+    if not row:
+        raise SystemExit(f"Produto não encontrado/ativo: SKU={sku}")
+    return row
+
+
+def estoque_atual(con: sqlite3.Connection, produto_id: int) -> Decimal:
+    row = con.execute(
+        "SELECT COALESCE(SUM(quantidade), 0) AS saldo FROM movimentos WHERE produto_id = ?",
+        (produto_id,),
+    ).fetchone()
+    return Decimal(str(row["saldo"] or 0))
+
+
+def recomputar_custo_medio(con: sqlite3.Connection, produto_id: int) -> None:
+    """
+    Custo médio simples baseado em entradas (quantidade > 0) com custo_unitario.
+    Ajustes positivos com custo_unitario também entram.
+    """
+    rows = con.execute(
+        """
+        SELECT quantidade, custo_unitario
+        FROM movimentos
+        WHERE produto_id = ?
+          AND quantidade &gt; 0
+          AND custo_unitario IS NOT NULL
+        """,
+        (produto_id,),
+    ).fetchall()
+
+    total_q = Decimal("0")
+    total_v = Decimal("0")
+    for r in rows:
+        q = Decimal(str(r["quantidade"]))
+        c = Decimal(str(r["custo_unitario"]))
+        total_q += q
+        total_v += q * c
+
+    custo_medio = (total_v / total_q) if total_q &gt; 0 else Decimal("0")
+    con.execute(
+        "UPDATE produtos SET custo_medio = ?, atualizado_em = ? WHERE id = ?",
+        (str(custo_medio), now_iso(), produto_id),
+    )
+
+
+# ---------------------------
+# Cadastros
+# ---------------------------
+
+def upsert_categoria(con: sqlite3.Connection, nome: str) -&gt; int:
+    nome = nome.strip()
+    if not nome:
+        raise SystemExit("Categoria inválida.")
+    con.execute("INSERT OR IGNORE INTO categorias (nome) VALUES (?)", (nome,))
+    row = con.execute("SELECT id FROM categorias WHERE nome = ?", (nome,)).fetchone()
+    return int(row["id"])
+
+
+def cadastrar_produto(
+    db: DB,
+    sku: str,
+    nome: str,
+    categoria: Optional[str],
+    unidade: str,
+    estoque_minimo: Decimal,
+    preco_venda: Decimal
+) -&gt; None:
+    sku = sku.strip().upper()
+    nome = nome.strip()
+    unidade = (unidade or "UN").strip().upper()
+
+    if not sku or not nome:
+        raise SystemExit("SKU e nome são obrigatórios.")
+
+    with db.connect() as con:
+        cat_id = upsert_categoria(con, categoria) if categoria else None
+        ts = now_iso()
+        con.execute(
+            """
+            INSERT INTO produtos (sku, nome, categoria_id, unidade, estoque_minimo, preco_venda, custo_medio, criado_em, atualizado_em)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """,
+            (sku, nome, cat_id, unidade, str(estoque_minimo), str(preco_venda), "0", ts, ts),
+        )
+        log(con, "CAD_PRODUTO", f"{sku} - {nome}")
+        print(f"OK: Produto cadastrado: {sku} — {nome}")
+
+
+def listar_produtos(db: DB, incluir_inativos: bool = False) -&gt; None:
+    with db.connect() as con:
+        where = "" if incluir_inativos else "WHERE p.ativo = 1"
+        rows = con.execute(
+            f"""
+            SELECT p.sku, p.nome, c.nome as categoria, p.unidade, p.estoque_minimo, p.preco_venda, p.custo_medio, p.ativo
+            FROM produtos p
+            LEFT JOIN categorias c ON c.id = p.categoria_id
+            {where}
+            ORDER BY p.nome
+            """
+        ).fetchall()
+
+        print("SKU | Nome | Categoria | UN | Min | Preço | Custo Médio | Ativo | Saldo")
+        for r in rows:
+            prod = con.execute("SELECT id FROM produtos WHERE sku = ?", (r["sku"],)).fetchone()
+            saldo = estoque_atual(con, int(prod["id"]))
+            print(
+                f'{r["sku"]} | {r["nome"]} | {r["categoria"] or "-"} | {r["unidade"]} | {r["estoque_minimo"]} | '
+                f'{r["preco_venda"]} | {r["custo_medio"]} | {r["ativo"]} | {saldo}'
+            )
+
+
+def inativar_produto(db: DB, sku: str) -&gt; None:
+    with db.connect() as con:
+        p = get_produto_by_sku(con, sku.strip().upper())
+        con.execute("UPDATE produtos SET ativo = 0, atualizado_em = ? WHERE id = ?", (now_iso(), p["id"]))
+        log(con, "INATIVA_PRODUTO", sku)
+        print(f"OK: Produto inativado: {sku}")
+
+
+# ---------------------------
+# Movimentações
+# ---------------------------
+
+def registrar_compra(
+    db: DB,
+    fornecedor: Optional[str],
+    data: str,
+    sku: str,
+    quantidade: Decimal,
+    custo_unitario: Decimal,
+    observacao: str = ""
+) -&gt; None:
+    if quantidade &lt;= 0:
+        raise SystemExit("Quantidade deve ser &gt; 0.")
+    if custo_unitario &lt; 0:
+        raise SystemExit("Custo unitário inválido.")
+
+    with db.connect() as con:
+        fornecedor_id = None
+        if fornecedor:
+            nomef = fornecedor.strip()
+            con.execute("INSERT OR IGNORE INTO fornecedores (nome) VALUES (?)", (nomef,))
+            fornecedor_id = con.execute("SELECT id FROM fornecedores WHERE nome = ?", (nomef,)).fetchone()["id"]
+
+        p = get_produto_by_sku(con, sku.strip().upper())
+
+        ts = now_iso()
+        cur = con.execute(
+            "INSERT INTO compras (fornecedor_id, data, total, criado_em) VALUES (?,?,?,?)",
+            (fornecedor_id, data, "0", ts),
+        )
+        compra_id = cur.lastrowid
+
+        subtotal = quantidade * custo_unitario
+        con.execute(
+            """
+            INSERT INTO compras_itens (compra_id, produto_id, quantidade, custo_unitario, subtotal)
+            VALUES (?,?,?,?,?)
+            """,
+            (compra_id, p["id"], str(quantidade), str(custo_unitario), str(subtotal)),
+        )
+
+        con.execute("UPDATE compras SET total = ? WHERE id = ?", (str(subtotal), compra_id))
+
+        con.execute(
+            """
+            INSERT INTO movimentos (produto_id, tipo, quantidade, custo_unitario, ref_tipo, ref_id, observacao, criado_em)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (p["id"], "ENTRADA", str(quantidade), str(custo_unitario), "COMPRA", compra_id, observacao, ts),
+        )
+
+        recomputar_custo_medio(con, int(p["id"]))
+        log(con, "COMPRA", f"compra_id={compra_id} sku={p['sku']} qtd={quantidade} custo={custo_unitario}")
+        saldo = estoque_atual(con, int(p["id"]))
+        print(f"OK: Entrada registrada. Saldo atual ({p['sku']}): {saldo}")
+
+
+def registrar_venda(
+    db: DB,
+    cliente: Optional[str],
+    data: str,
+    sku: str,
+    quantidade: Decimal,
+    preco_unitario: Optional[Decimal],
+    observacao: str = ""
+) -&gt; None:
+    if quantidade &lt;= 0:
+        raise SystemExit("Quantidade deve ser &gt; 0.")
+
+    with db.connect() as con:
+        cliente_id = None
+        if cliente:
+            nomec = cliente.strip()
+            con.execute("INSERT OR IGNORE INTO clientes (nome) VALUES (?)", (nomec,))
+            cliente_id = con.execute("SELECT id FROM clientes WHERE nome = ?", (nomec,)).fetchone()["id"]
+
+        p = get_produto_by_sku(con, sku.strip().upper())
+        saldo = estoque_atual(con, int(p["id"]))
+        if saldo - quantidade &lt; 0:
+            raise SystemExit(f"Estoque insuficiente. Saldo={saldo} tentando sair={quantidade}")
+
+        pu = preco_unitario if preco_unitario is not None else Decimal(str(p["preco_venda"]))
+        if pu &lt; 0:
+            raise SystemExit("Preço unitário inválido.")
+
+        ts = now_iso()
+        cur = con.execute(
+            "INSERT INTO vendas (cliente_id, data, total, criado_em) VALUES (?,?,?,?)",
+            (cliente_id, data, "0", ts),
+        )
+        venda_id = cur.lastrowid
+
+        subtotal = quantidade * pu
+        con.execute(
+            """
+            INSERT INTO vendas_itens (venda_id, produto_id, quantidade, preco_unitario, subtotal)
+            VALUES (?,?,?,?,?)
+            """,
+            (venda_id, p["id"], str(quantidade), str(pu), str(subtotal)),
+        )
+        con.execute("UPDATE vendas SET total = ? WHERE id = ?", (str(subtotal), venda_id))
+
+        con.execute(
+            """
+            INSERT INTO movimentos (produto_id, tipo, quantidade, preco_unitario, ref_tipo, ref_id, observacao, criado_em)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (p["id"], "SAIDA", str(-quantidade), str(pu), "VENDA", venda_id, observacao, ts),
+        )
+
+        log(con, "VENDA", f"venda_id={venda_id} sku={p['sku']} qtd={quantidade} preco={pu}")
+        saldo2 = estoque_atual(con, int(p["id"]))
+        print(f"OK: Saída registrada. Saldo atual ({p['sku']}): {saldo2}")
+
+
+def ajustar_estoque(
+    db: DB,
+    sku: str,
+    quantidade: Decimal,
+    motivo: str,
+    custo_unitario: Optional[Decimal] = None,
+    observacao: str = ""
+) -&gt; None:
+    if quantidade == 0:
+        raise SystemExit("Quantidade do ajuste não pode ser 0.")
+    motivo = (motivo or "AJUSTE").strip().upper()
+
+    with db.connect() as con:
+        p = get_produto_by_sku(con, sku.strip().upper())
+        saldo = estoque_atual(con, int(p["id"]))
+        if saldo + quantidade &lt; 0:
+            raise SystemExit(f"Ajuste resultaria em saldo negativo. Saldo={saldo} ajuste={quantidade}")
+
+        ts = now_iso()
+        con.execute(
+            """
+            INSERT INTO movimentos (produto_id, tipo, quantidade, custo_unitario, ref_tipo, observacao, criado_em)
+            VALUES (?,?,?,?,?,?,?)
+            """,
+            (p["id"], "AJUSTE", str(quantidade), str(custo_unitario) if custo_unitario is not None else None, motivo, observacao, ts),
+        )
+        recomputar_custo_medio(con, int(p["id"]))
+        log(con, "AJUSTE", f"sku={p['sku']} qtd={quantidade} motivo={motivo}")
+
+        saldo2 = estoque_atual(con, int(p["id"]))
+        print(f"OK: Ajuste registrado. Saldo atual ({p['sku']}): {saldo2}")
+
+
+# ---------------------------
+# Relatórios
+# ---------------------------
+
+def relatorio_abaixo_minimo(db: DB) -&gt; None:
+    with db.connect() as con:
+        rows = con.execute(
+            """
+            SELECT id, sku, nome, estoque_minimo, custo_medio
+            FROM produtos
+            WHERE ativo = 1
+            ORDER BY nome
+            """
+        ).fetchall()
+
+        print("Abaixo do mínimo:")
+        found = False
+        for r in rows:
+            saldo = estoque_atual(con, int(r["id"]))
+            minimo = Decimal(str(r["estoque_minimo"]))
+            if saldo &lt; minimo:
+                found = True
+                print(f'- {r["sku"]} | {r["nome"]}: saldo={saldo} min={minimo}')
+        if not found:
+            print("Nenhum item abaixo do mínimo.")
+
+
+def relatorio_estoque(db: DB) -&gt; None:
+    with db.connect() as con:
+        rows = con.execute(
+            """
+            SELECT p.id, p.sku, p.nome, p.unidade, p.custo_medio, p.preco_venda, p.estoque_minimo
+            FROM produtos p
+            WHERE p.ativo = 1
+            ORDER BY p.nome
+            """
+        ).fetchall()
+
+        total_val = Decimal("0")
+        print("SKU | Nome | Saldo | UN | Custo Médio | Valorização | Preço")
+        for r in rows:
+            saldo = estoque_atual(con, int(r["id"]))
+            cm = Decimal(str(r["custo_medio"]))
+            val = saldo * cm
+            total_val += val
+            print(f'{r["sku"]} | {r["nome"]} | {saldo} | {r["unidade"]} | {cm} | {val} | {r["preco_venda"]}')
+
+        print(f"\nValorização total (custo médio): {money(total_val)}")
+
+
+def relatorio_movimentos(db: DB, inicio: str, fim: str) -&gt; None:
+    with db.connect() as con:
+        rows = con.execute(
+            """
+            SELECT m.criado_em, p.sku, p.nome, m.tipo, m.quantidade, m.custo_unitario, m.preco_unitario, m.ref_tipo, m.ref_id, m.observacao
+            FROM movimentos m
+            JOIN produtos p ON p.id = m.produto_id
+            WHERE date(m.criado_em) BETWEEN date(?) AND date(?)
+            ORDER BY m.criado_em DESC
+            """,
+            (inicio, fim),
+        ).fetchall()
+
+        print(f"Movimentos de {inicio} até {fim}:")
+        for r in rows:
+            print(
+                f'{r["criado_em"]} | {r["sku"]} | {r["tipo"]} | qtd={r["quantidade"]} | '
+                f'custo={r["custo_unitario"]} | preco={r["preco_unitario"]} | ref={r["ref_tipo"]}:{r["ref_id"]} | {r["observacao"] or ""}'
+            )
+
+
+def exportar_csv(db: DB, arquivo: str) -&gt; None:
+    with db.connect() as con:
+        rows = con.execute(
+            """
+            SELECT p.id, p.sku, p.nome, p.unidade, p.estoque_minimo, p.preco_venda, p.custo_medio
+            FROM produtos p
+            WHERE p.ativo = 1
+            ORDER BY p.nome
+            """
+        ).fetchall()
+
+        with open(arquivo, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f, delimiter=";")
+            w.writerow(["sku", "nome", "unidade", "estoque_minimo", "preco_venda", "custo_medio", "saldo"])
+            for r in rows:
+                saldo = estoque_atual(con, int(r["id"]))
+                w.writerow([r["sku"], r["nome"], r["unidade"], r["estoque_minimo"], r["preco_venda"], r["custo_medio"], str(saldo)])
+
+        print(f"OK: Exportado para {arquivo}")
+
+
+# ---------------------------
+# CLI
+# ---------------------------
+
+def build_parser() -&gt; argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="estoquepro", description="Controle de estoque (CLI) com SQLite")
+    p.add_argument("--db", default=DB_DEFAULT, help="Caminho do arquivo SQLite (padrão: estoquepro.db)")
+
+    sp = p.add_subparsers(dest="cmd", required=True)
+
+    sp.add_parser("init", help="Inicializa o banco de dados")
+
+    cad = sp.add_parser("cadastrar-produto", help="Cadastra um produto")
+    cad.add_argument("--sku", required=True)
+    cad.add_argument("--nome", required=True)
+    cad.add_argument("--categoria")
+    cad.add_argument("--unidade", default="UN")
+    cad.add_argument("--min", default="0")
+    cad.add_argument("--preco", default="0")
+
+    lp = sp.add_parser("listar-produtos", help="Lista produtos")
+    lp.add_argument("--inativos", action="store_true")
+
+    ina = sp.add_parser("inativar-produto", help="Inativa produto")
+    ina.add_argument("--sku", required=True)
+
+    compra = sp.add_parser("compra", help="Registra compra (entrada)")
+    compra.add_argument("--fornecedor")
+    compra.add_argument("--data", default=today_iso_date())
+    compra.add_argument("--sku", required=True)
+    compra.add_argument("--qtd", required=True)
+    compra.add_argument("--custo", required=True)
+    compra.add_argument("--obs", default="")
+
+    venda = sp.add_parser("venda", help="Registra venda (saída)")
+    venda.add_argument("--cliente")
+    venda.add_argument("--data", default=today_iso_date())
+    venda.add_argument("--sku", required=True)
+    venda.add_argument("--qtd", required=True)
+    venda.add_argument("--preco")  # opcional
+    venda.add_argument("--obs", default="")
+
+    aj = sp.add_parser("ajuste", help="Ajuste de estoque (+/-)")
+    aj.add_argument("--sku", required=True)
+    aj.add_argument("--qtd", required=True, help="Ex.: 5 para +5, -2 para -2")
+    aj.add_argument("--motivo", default="INVENTARIO")
+    aj.add_argument("--custo")  # opcional (para ajustes positivos)
+    aj.add_argument("--obs", default="")
+
+    rmin = sp.add_parser("abaixo-minimo", help="Lista produtos abaixo do mínimo")
+    rest = sp.add_parser("relatorio-estoque", help="Relatório de estoque + valorização")
+    rmov = sp.add_parser("movimentos", help="Relatório de movimentos por período")
+    rmov.add_argument("--inicio", required=True, help="YYYY-MM-DD")
+    rmov.add_argument("--fim", required=True, help="YYYY-MM-DD")
+
+    exp = sp.add_parser("exportar-csv", help="Exporta produtos + saldo para CSV")
+    exp.add_argument("--arquivo", default="estoque.csv")
+
+    return p
+
+
+def main(argv: Optional[list[str]] = None) -&gt; None:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    db = DB(args.db)
+
+    if args.cmd == "init":
+        init_db(db)
+        print("OK: Banco pronto.")
+        return
+
+    # garante que o banco existe / schema aplicado
+    init_db(db)
+
+    if args.cmd == "cadastrar-produto":
+        cadastrar_produto(
+            db=db,
+            sku=args.sku,
+            nome=args.nome,
+            categoria=args.categoria,
+            unidade=args.unidade,
+            estoque_minimo=parse_decimal(args.min),
+            preco_venda=parse_decimal(args.preco),
+        )
+        return
+
+    if args.cmd == "listar-produtos":
+        listar_produtos(db, incluir_inativos=args.inativos)
+        return
+
+    if args.cmd == "inativar-produto":
+        inativar_produto(db, args.sku)
+        return
+
+    if args.cmd == "compra":
+        registrar_compra(
+            db=db,
+            fornecedor=args.fornecedor,
+            data=args.data,
+            sku=args.sku,
+            quantidade=parse_decimal(args.qtd),
+            custo_unitario=parse_decimal(args.custo),
+            observacao=args.obs,
+        )
+        return
+
+    if args.cmd == "venda":
+        pu = parse_decimal(args.preco) if args.preco is not None else None
+        registrar_venda(
+            db=db,
+            cliente=args.cliente,
+            data=args.data,
+            sku=args.sku,
+            quantidade=parse_decimal(args.qtd),
+            preco_unitario=pu,
+            observacao=args.obs,
+        )
+        return
+
+    if args.cmd == "ajuste":
+        cu = parse_decimal(args.custo) if args.custo is not None else None
+        ajustar_estoque(
+            db=db,
+            sku=args.sku,
+            quantidade=parse_decimal(args.qtd),
+            motivo=args.motivo,
+            custo_unitario=cu,
+            observacao=args.obs,
+        )
+        return
+
+    if args.cmd == "abaixo-minimo":
+        relatorio_abaixo_minimo(db)
+        return
+
+    if args.cmd == "relatorio-estoque":
+        relatorio_estoque(db)
+        return
+
+    if args.cmd == "movimentos":
+        relatorio_movimentos(db, args.inicio, args.fim)
+        return
+
+    if args.cmd == "exportar-csv":
+        exportar_csv(db, args.arquivo)
+        return
+
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="como-rodar">
+      <div class="wrap">
+        <div class="sectionHead stagger" data-reveal>
+          <div>
+            <h2>Como rodar (exemplos)</h2>
+            <p class="sub">
+              Copie o arquivo <span class="filePill">estoquepro.py</span>, execute os comandos abaixo e pronto.
+              Você pode apontar para outro banco com <span class="filePill">--db</span>.
+            </p>
+          </div>
+        </div>
+
+        <div class="rails">
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Inicialização</div>
+                <div class="meta"><span>criar banco</span><span>schema</span><span>auditoria</span></div>
+              </div>
+              <div class="tag">setup</div>
+            </div>
+            <div class="railInner">
+              <h3>Crie o banco e comece a cadastrar.</h3>
+              <p style="margin-top:.55rem; font-family: var(--mono); color: rgba(255,255,255,.82);">
+                python estoquepro.py init<br>
+                python estoquepro.py cadastrar-produto --sku ARZ5 --nome "Arroz 5kg" --categoria Alimentos --unidade UN --min 10 --preco 29,90
+              </p>
+            </div>
+          </article>
+
+          <article class="rail stagger" data-reveal>
+            <div class="railTop">
+              <div>
+                <div class="stamp">Operação diária</div>
+                <div class="meta"><span>compra</span><span>venda</span><span>alertas</span><span>csv</span></div>
+              </div>
+              <div class="tag">ops</div>
+            </div>
+            <div class="railInner">
+              <h3>Movimente e gere relatórios.</h3>
+              <p style="margin-top:.55rem; font-family: var(--mono); color: rgba(255,255,255,.82);">
+                python estoquepro.py compra --fornecedor "Distribuidora X" --sku ARZ5 --qtd 30 --custo 18,40<br>
+                python estoquepro.py venda --cliente "Mercado Central" --sku ARZ5 --qtd 4<br>
+                python estoquepro.py abaixo-minimo<br>
+                python estoquepro.py relatorio-estoque<br>
+                python estoquepro.py exportar-csv --arquivo estoque.csv
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap foot">
+        <div>
+          <a class="brand" href="#top">
+            <div class="mark" aria-hidden="true"></div>
+            <div>
+              <strong>EstoquePro</strong>
+              <span>Base sólida para evoluir para Web/Desktop</span>
+            </div>
+          </a>
+          <p>
+            Se você responder estas 4 perguntas, eu adapto o sistema para seu caso real:
+            <br><span class="meta">1) Quantos produtos? 2) Tem variação (cor/tamanho/lote/validade)? 3) Precisa multiusuário? 4) Integra com PDV?</span>
+          </p>
+          <div class="meta">© <span id="year"></span> EstoquePro • Projeto demonstrativo</div>
+        </div>
+
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
+          <a class="btn secondary small" href="#codigo">Código</a>
+          <a class="btn secondary small" href="#funcionalidades">Funcionalidades</a>
+          <a class="btn small" href="#top">Topo</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Copiado para a área de transferência.</div>
+
+  <script>
+    // Mobile menu
+    const menuBtn = document.getElementById('menuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if(menuBtn && mobileMenu){
+      menuBtn.addEventListener('click', () => {
+        const open = menuBtn.getAttribute('aria-expanded') === 'true';
+        menuBtn.setAttribute('aria-expanded', String(!open));
+        mobileMenu.hidden = open;
+      });
+    }
+
+    // Intersection reveal
+    const toReveal = document.querySelectorAll('[data-reveal]');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if(e.isIntersecting){
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    toReveal.forEach(el => io.observe(el));
+
+    // Copy code
+    const copyBtn = document.getElementById('copyBtn');
+    const codeBlock = document.getElementById('codeBlock');
+    const toast = document.getElementById('toast');
+
+    function showToast(msg){
+      if(!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      window.clearTimeout(showToast._t);
+      showToast._t = window.setTimeout(() => toast.classList.remove('show'), 1700);
+    }
+
+    if(copyBtn && codeBlock){
+      copyBtn.addEventListener('click', async () => {
+        const text = codeBlock.innerText;
+        try{
+          await navigator.clipboard.writeText(text);
+          showToast("Copiado para a área de transferência.");
+          copyBtn.textContent = "Copiado";
+          setTimeout(() => copyBtn.textContent = "Copiar", 1200);
+        }catch(err){
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          showToast("Copiado (modo compatível).");
+        }
+      });
+    }
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Smooth anchors (respect reduced motion)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', (e)=>{
+        const id = a.getAttribute('href');
+        if(!id || id === '#') return;
+        const el = document.querySelector(id);
+        if(!el) return;
+        e.preventDefault();
+        el.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'start'});
+        if(mobileMenu && !mobileMenu.hidden){
+          mobileMenu.hidden = true;
+          menuBtn && menuBtn.setAttribute('aria-expanded','false');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

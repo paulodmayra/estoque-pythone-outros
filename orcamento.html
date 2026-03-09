@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>App de Orçamentos - Serviços</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f3f4f6;
+    color: #111827;
+  }
+  header {
+    background: #111827;
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+  header span {
+    font-size: 13px;
+    opacity: 0.8;
+  }
+  main {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 16px 24px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1.4fr;
+    gap: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px 18px;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.12);
+  }
+  .card h2 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+  label {
+    font-size: 13px;
+    display: block;
+    margin-bottom: 3px;
+    color: #4b5563;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px 12px;
+  }
+  .btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: #2563eb;
+    color: #fff;
+  }
+  .btn-secondary {
+    background: #e5e7eb;
+    color: #111827;
+  }
+  .btn-danger {
+    background: #dc2626;
+    color: #fff;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 6px 6px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+  th {
+    background: #f9fafb;
+    font-weight: 600;
+    font-size: 12px;
+    color: #4b5563;
+  }
+  tr:hover td {
+    background: #f3f4ff;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .tag-solda { background:#fee2e2; color:#b91c1c; }
+  .tag-serralheria { background:#e0f2fe; color:#1d4ed8; }
+  .tag-eletrica { background:#fef3c7; color:#92400e; }
+  .tag-informatica { background:#e0f2f1; color:#00695c; }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 10px 0 4px;
+    color: #111827;
+  }
+  .total-box {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f9fafb;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .total-box strong {
+    font-size: 15px;
+  }
+  .pill {
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .status-orc {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .status-aberto { background:#dbeafe; color:#1d4ed8; }
+  .status-aprovado { background:#dcfce7; color:#166534; }
+  .status-recusado { background:#fee2e2; color:#b91c1c; }
+  .small {
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .mt-4 { margin-top: 16px; }
+  .mt-2 { margin-top: 8px; }
+  .flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clickable {
+    cursor: pointer;
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>App de Orçamentos</h1>
+    <span>Solda • Serralheria • Elétrica • Informática</span>
+  </div>
+  <div class="small" id="headerInfo"></div>
+</header>
+
+<main>
+  <div class="layout">
+    <!-- CLIENTES -->
+    <section class="card">
+      <h2>
+        Clientes
+        <button class="btn btn-primary" id="btnNovoCliente">Novo cliente</button>
+      </h2>
+
+      <div id="clienteFormArea" style="display:none; margin-bottom:10px;">
+        <h3 id="clienteFormTitulo">Novo cliente</h3>
+        <div class="row">
+          <div>
+            <label>Nome</label>
+            <input type="text" id="cliNome">
+          </div>
+          <div>
+            <label>Telefone</label>
+            <input type="text" id="cliTelefone" placeholder="(11) 99999-9999">
+          </div>
+        </div>
+        <label>E-mail</label>
+        <input type="email" id="cliEmail" placeholder="cliente@exemplo.com">
+        <label>Endereço</label>
+        <textarea id="cliEndereco" placeholder="Rua, número, bairro, cidade"></textarea>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btnSalvarCliente">Salvar cliente</button>
+          <button class="btn btn-secondary" id="btnCancelarCliente">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="flex-between mt-2">
+        <span class="section-title">Lista de clientes</span>
+        <span class="small" id="clientesCount"></span>
+      </div>
+      <table id="clientesTabela">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>E-mail</th>
+            <th style="width:90px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- ORÇAMENTOS -->
+    <section class="card">
+      <h2>
+        Orçamentos
+        <button class="btn btn-primary" id="btnNovoOrcamento">Novo orçamento</button>
+      </h2>
+
+      <div id="orcFormArea" style="display:none; margin-bottom:10px;">
+        <h3 id="orcFormTitulo">Novo orçamento</h3>
+
+        <label>Cliente</label>
+        <select id="orcCliente"></select>
+
+        <label>Serviço principal</label>
+        <select id="orcTipo">
+          <option value="solda">Solda</option>
+          <option value="serralheria">Serralheria</option>
+          <option value="eletrica">Elétrica</option>
+          <option value="informatica">Informática</option>
+        </select>
+
+        <label>Descrição do serviço</label>
+        <textarea id="orcDescricao" placeholder="Detalhe o serviço a ser executado"></textarea>
+
+        <div class="row">
+          <div>
+            <label>Mão de obra (R$)</label>
+            <input type="number" id="orcMaoObra" step="0.01" min="0">
+          </div>
+          <div>
+            <label>Materiais (R$)</label>
+            <input type="number" id="orcMateriais" step="0.01" min="0">
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Desconto (R$)</label>
+            <input type="number" id="orcDesconto" step="0.01" min="0" value="0">
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="orcStatus">
+              <option value="aberto">Aberto</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="recusado">Recusado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="total-box">
+          <span>Total estimado:</span>
+          <strong id="orcTotal">R$ 0,00</strong>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btnSalvarOrcamento">Salvar orçamento</button>
+          <button class="btn btn-secondary" id="btnCancelarOrcamento">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="flex-between mt-2">
+        <span class="section-title">Lista de orçamentos</span>
+        <span class="small" id="orcamentosCount"></span>
+      </div>
+
+      <table id="orcamentosTabela">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Serviço</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th style="width:90px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- DETALHES DO ORÇAMENTO -->
+  <section class="card mt-4">
+    <h2>Detalhes do orçamento selecionado</h2>
+    <div id="detalhesOrcamento">
+      <p class="small">Clique em um orçamento na tabela para ver os detalhes aqui.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Estrutura de dados
+  let clientes = [];
+  let orcamentos = [];
+  let clienteEditandoId = null;
+  let orcamentoEditandoId = null;
+
+  // Carregar do localStorage
+  function carregarDados() {
+    try {
+      const c = localStorage.getItem("app_orc_clientes");
+      const o = localStorage.getItem("app_orc_orcamentos");
+      if (c) clientes = JSON.parse(c);
+      if (o) orcamentos = JSON.parse(o);
+    } catch (e) {
+      console.error("Erro ao carregar dados:", e);
+    }
+  }
+
+  function salvarDados() {
+    localStorage.setItem("app_orc_clientes", JSON.stringify(clientes));
+    localStorage.setItem("app_orc_orcamentos", JSON.stringify(orcamentos));
+  }
+
+  // Utilidades
+  function formatarMoeda(v) {
+    const n = Number(v) || 0;
+    return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function gerarId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  }
+
+  function tagServico(tipo) {
+    const map = {
+      solda: { texto: "Solda", classe: "tag-solda" },
+      serralheria: { texto: "Serralheria", classe: "tag-serralheria" },
+      eletrica: { texto: "Elétrica", classe: "tag-eletrica" },
+      informatica: { texto: "Informática", classe: "tag-informatica" }
+    };
+    const t = map[tipo] || { texto: tipo, classe: "" };
+    return `<span class="tag ${t.classe}">${t.texto}</span>`;
+  }
+
+  function tagStatus(status) {
+    const map = {
+      aberto: { texto: "Aberto", classe: "status-aberto" },
+      aprovado: { texto: "Aprovado", classe: "status-aprovado" },
+      recusado: { texto: "Recusado", classe: "status-recusado" }
+    };
+    const s = map[status] || { texto: status, classe: "" };
+    return `<span class="status-orc ${s.classe}">${s.texto}</span>`;
+  }
+
+  // Atualizar header
+  function atualizarHeader() {
+    const info = document.getElementById("headerInfo");
+    info.textContent = `Clientes: ${clientes.length} • Orçamentos: ${orcamentos.length}`;
+  }
+
+  // CLIENTES
+  function atualizarListaClientes() {
+    const tbody = document.querySelector("#clientesTabela tbody");
+    tbody.innerHTML = "";
+    clientes.forEach(cli => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${cli.nome}</td>
+        <td>${cli.telefone || "-"}</td>
+        <td>${cli.email || "-"}</td>
+        <td>
+          <button class="btn btn-secondary" data-acao="editar" data-id="${cli.id}">✏️</button>
+          <button class="btn btn-danger" data-acao="excluir" data-id="${cli.id}">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById("clientesCount").textContent =
+      clientes.length ? `${clientes.length} cliente(s)` : "Nenhum cliente cadastrado";
+    atualizarSelectClientes();
+    atualizarHeader();
+  }
+
+  function atualizarSelectClientes() {
+    const sel = document.getElementById("orcCliente");
+    sel.innerHTML = "";
+    if (!clientes.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Cadastre um cliente primeiro";
+      sel.appendChild(opt);
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+      clientes.forEach(cli => {
+        const opt = document.createElement("option");
+        opt.value = cli.id;
+        opt.textContent = cli.nome;
+        sel.appendChild(opt);
+      });
+    }
+  }
+
+  function abrirFormCliente(editar = false, id = null) {
+    const area = document.getElementById("clienteFormArea");
+    const titulo = document.getElementById("clienteFormTitulo");
+    area.style.display = "block";
+    if (editar && id) {
+      const cli = clientes.find(c => c.id === id);
+      if (!cli) return;
+      clienteEditandoId = id;
+      titulo.textContent = "Editar cliente";
+      document.getElementById("cliNome").value = cli.nome;
+      document.getElementById("cliTelefone").value = cli.telefone || "";
+      document.getElementById("cliEmail").value = cli.email || "";
+      document.getElementById("cliEndereco").value = cli.endereco || "";
+    } else {
+      clienteEditandoId = null;
+      titulo.textContent = "Novo cliente";
+      document.getElementById("cliNome").value = "";
+      document.getElementById("cliTelefone").value = "";
+      document.getElementById("cliEmail").value = "";
+      document.getElementById("cliEndereco").value = "";
+    }
+  }
+
+  function fecharFormCliente() {
+    document.getElementById("clienteFormArea").style.display = "none";
+    clienteEditandoId = null;
+  }
+
+  function salvarCliente() {
+    const nome = document.getElementById("cliNome").value.trim();
+    const telefone = document.getElementById("cliTelefone").value.trim();
+    const email = document.getElementById("cliEmail").value.trim();
+    const endereco = document.getElementById("cliEndereco").value.trim();
+
+    if (!nome) {
+      alert("Informe o nome do cliente.");
+      return;
+    }
+
+    if (clienteEditandoId) {
+      const cli = clientes.find(c => c.id === clienteEditandoId);
+      if (!cli) return;
+      cli.nome = nome;
+      cli.telefone = telefone;
+      cli.email = email;
+      cli.endereco = endereco;
+    } else {
+      clientes.push({
+        id: gerarId(),
+        nome,
+        telefone,
+        email,
+        endereco
+      });
+    }
+    salvarDados();
+    atualizarListaClientes();
+    fecharFormCliente();
+  }
+
+  function excluirCliente(id) {
+    const temOrc = orcamentos.some(o => o.clienteId === id);
+    if (temOrc && !confirm("Este cliente possui orçamentos. Deseja realmente excluir?")) return;
+    clientes = clientes.filter(c => c.id !== id);
+    orcamentos = orcamentos.filter(o => o.clienteId !== id);
+    salvarDados();
+    atualizarListaClientes();
+    atualizarListaOrcamentos();
+    document.getElementById("detalhesOrcamento").innerHTML =
+      '<p class="small">Clique em um orçamento na tabela para ver os detalhes aqui.</p>';
+  }
+
+  // ORÇAMENTOS
+  function calcularTotalOrcamento() {
+    const mao = Number(document.getElementById("orcMaoObra").value) || 0;
+    const mat = Number(document.getElementById("orcMateriais").value) || 0;
+    const desc = Number(document.getElementById("orcDesconto").value) || 0;
+    const total = Math.max(mao + mat - desc, 0);
+    document.getElementById("orcTotal").textContent = formatarMoeda(total);
+    return total;
+  }
+
+  function atualizarListaOrcamentos() {
+    const tbody = document.querySelector("#orcamentosTabela tbody");
+    tbody.innerHTML = "";
+    orcamentos.forEach(orc => {
+      const cli = clientes.find(c => c.id === orc.clienteId);
+      const nomeCli = cli ? cli.nome : "(Cliente removido)";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><span class="clickable" data-acao="detalhes" data-id="${orc.id}">${nomeCli}</span></td>
+        <td>${tagServico(orc.tipo)}</td>
+        <td>${formatarMoeda(orc.total)}</td>
+        <td>${tagStatus(orc.status)}</td>
+        <td>
+          <button class="btn btn-secondary" data-acao="editar-orc" data-id="${orc.id}">✏️</button>
+          <button class="btn btn-danger" data-acao="excluir-orc" data-id="${orc.id}">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById("orcamentosCount").textContent =
+      orcamentos.length ? `${orcamentos.length} orçamento(s)` : "Nenhum orçamento cadastrado";
+    atualizarHeader();
+  }
+
+  function abrirFormOrcamento(editar = false, id = null) {
+    const area = document.getElementById("orcFormArea");
+    const titulo = document.getElementById("orcFormTitulo");
+    area.style.display = "block";
+    calcularTotalOrcamento();
+
+    if (!clientes.length) {
+      alert("Cadastre pelo menos um cliente antes de criar orçamentos.");
+    }
+
+    if (editar && id) {
+      const orc = orcamentos.find(o => o.id === id);
+      if (!orc) return;
+      orcamentoEditandoId = id;
+      titulo.textContent = "Editar orçamento";
+
+      atualizarSelectClientes();
+      document.getElementById("orcCliente").value = orc.clienteId;
+      document.getElementById("orcTipo").value = orc.tipo;
+      document.getElementById("orcDescricao").value = orc.descricao;
+      document.getElementById("orcMaoObra").value = orc.maoObra;
+      document.getElementById("orcMateriais").value = orc.materiais;
+      document.getElementById("orcDesconto").value = orc.desconto;
+      document.getElementById("orcStatus").value = orc.status;
+      calcularTotalOrcamento();
+    } else {
+      orcamentoEditandoId = null;
+      titulo.textContent = "Novo orçamento";
+      atualizarSelectClientes();
+      document.getElementById("orcDescricao").value = "";
+      document.getElementById("orcMaoObra").value = "";
+      document.getElementById("orcMateriais").value = "";
+      document.getElementById("orcDesconto").value = "0";
+      document.getElementById("orcStatus").value = "aberto";
+      calcularTotalOrcamento();
+    }
+  }
+
+  function fecharFormOrcamento() {
+    document.getElementById("orcFormArea").style.display = "none";
+    orcamentoEditandoId = null;
+  }
+
+  function salvarOrcamento() {
+    const clienteId = document.getElementById("orcCliente").value;
+    const tipo = document.getElementById("orcTipo").value;
+    const descricao = document.getElementById("orcDescricao").value.trim();
+    const maoObra = Number(document.getElementById("orcMaoObra").value) || 0;
+    const materiais = Number(document.getElementById("orcMateriais").value) || 0;
+    const desconto = Number(document.getElementById("orcDesconto").value) || 0;
+    const status = document.getElementById("orcStatus").value;
+    const total = calcularTotalOrcamento();
+
+    if (!clienteId) {
+      alert("Selecione um cliente.");
+      return;
+    }
+    if (!descricao) {
+      alert("Informe a descrição do serviço.");
+      return;
+    }
+
+    if (orcamentoEditandoId) {
+      const orc = orcamentos.find(o => o.id === orcamentoEditandoId);
+      if (!orc) return;
+      orc.clienteId = clienteId;
+      orc.tipo = tipo;
+      orc.descricao = descricao;
+      orc.maoObra = maoObra;
+      orc.materiais = materiais;
+      orc.desconto = desconto;
+      orc.status = status;
+      orc.total = total;
+      orc.atualizadoEm = new Date().toISOString();
+    } else {
+      orcamentos.push({
+        id: gerarId(),
+        clienteId,
+        tipo,
+        descricao,
+        maoObra,
+        materiais,
+        desconto,
+        status,
+        total,
+        criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
+      });
+    }
+    salvarDados();
+    atualizarListaOrcamentos();
+    fecharFormOrcamento();
+  }
+
+  function excluirOrcamento(id) {
+    if (!confirm("Deseja realmente excluir este orçamento?")) return;
+    orcamentos = orcamentos.filter(o => o.id !== id);
+    salvarDados();
+    atualizarListaOrcamentos();
+    document.getElementById("detalhesOrcamento").innerHTML =
+      '<p class="small">Clique em um orçamento na tabela para ver os detalhes aqui.</p>';
+  }
+
+  function mostrarDetalhesOrcamento(id) {
+    const orc = orcamentos.find(o => o.id === id);
+    if (!orc) return;
+    const cli = clientes.find(c => c.id === orc.clienteId);
+    const nomeCli = cli ? cli.nome : "(Cliente removido)";
+    const telCli = cli?.telefone || "-";
+    const emailCli = cli?.email || "-";
+    const endCli = cli?.endereco || "-";
+
+    const criado = orc.criadoEm ? new Date(orc.criadoEm).toLocaleString("pt-BR") : "-";
+    const atualizado = orc.atualizadoEm ? new Date(orc.atualizadoEm).toLocaleString("pt-BR") : "-";
+
+    document.getElementById("detalhesOrcamento").innerHTML = `
+      <div class="row">
+        <div>
+          <h3>Cliente</h3>
+          <p><strong>${nomeCli}</strong></p>
+          <p class="small">Tel: ${telCli}<br>E-mail: ${emailCli}</p>
+          <p class="small">Endereço: ${endCli}</p>
+        </div>
+        <div>
+          <h3>Resumo do orçamento</h3>
+          <p>Serviço: ${tagServico(orc.tipo)}</p>
+          <p>Status: ${tagStatus(orc.status)}</p>
+          <p class="small">Criado em: ${criado}<br>Atualizado em: ${atualizado}</p>
+        </div>
+      </div>
+
+      <h3 class="mt-2">Descrição do serviço</h3>
+      <p style="white-space:pre-wrap; font-size:13px;">${orc.descricao}</p>
+
+      <h3 class="mt-2">Valores</h3>
+      <table>
+        <tr><th>Item</th><th>Valor</th></tr>
+        <tr><td>Mão de obra</td><td>${formatarMoeda(orc.maoObra)}</td></tr>
+        <tr><td>Materiais</td><td>${formatarMoeda(orc.materiais)}</td></tr>
+        <tr><td>Desconto</td><td>${formatarMoeda(orc.desconto)}</td></tr>
+        <tr><th>Total</th><th>${formatarMoeda(orc.total)}</th></tr>
+      </table>
+    `;
+  }
+
+  // Eventos
+  document.getElementById("btnNovoCliente").addEventListener("click", () => {
+    abrirFormCliente(false);
+  });
+  document.getElementById("btnCancelarCliente").addEventListener("click", fecharFormCliente);
+  document.getElementById("btnSalvarCliente").addEventListener("click", salvarCliente);
+
+  document.getElementById("clientesTabela").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    const acao = btn.dataset.acao;
+    const id = btn.dataset.id;
+    if (acao === "editar") abrirFormCliente(true, id);
+    if (acao === "excluir") excluirCliente(id);
+  });
+
+  document.getElementById("btnNovoOrcamento").addEventListener("click", () => {
+    abrirFormOrcamento(false);
+  });
+  document.getElementById("btnCancelarOrcamento").addEventListener("click", fecharFormOrcamento);
+  document.getElementById("btnSalvarOrcamento").addEventListener("click", salvarOrcamento);
+
+  ["orcMaoObra","orcMateriais","orcDesconto"].forEach(id => {
+    document.getElementById(id).addEventListener("input", calcularTotalOrcamento);
+  });
+
+  document.getElementById("orcamentosTabela").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    const span = e.target.closest("span");
+    if (btn) {
+      const acao = btn.dataset.acao;
+      const id = btn.dataset.id;
+      if (acao === "editar-orc") abrirFormOrcamento(true, id);
+      if (acao === "excluir-orc") excluirOrcamento(id);
+    } else if (span && span.dataset.acao === "detalhes") {
+      mostrarDetalhesOrcamento(span.dataset.id);
+    }
+  });
+
+  // Inicialização
+  carregarDados();
+  atualizarListaClientes();
+  atualizarListaOrcamentos();
+  atualizarHeader();
+</script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Orçamentos (Simplificado)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300..900&family=Fraunces:opsz,wght@9..144,500..900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#0b1220;
+      --bg1:#0f1a2e;
+      --panel: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.14);
+      --text:#eaf0ff;
+      --muted: rgba(234,240,255,.72);
+      --brand:#7c3aed;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+
+      --r-xl: 20px;
+      --r-lg: 16px;
+      --r-md: 12px;
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --container: 1100px;
+
+      --display:"Fraunces", serif;
+      --body:"Archivo", system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: var(--body);
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 20% 10%, rgba(124,58,237,.25), transparent 55%),
+        radial-gradient(700px 520px at 80% 25%, rgba(34,197,94,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+    }
+    header{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(12px);
+      background: rgba(11,18,32,.72);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .top{
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 16px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-family: var(--display);
+      letter-spacing:-.02em;
+      font-size: 22px;
+      font-weight: 800;
+      line-height:1.1;
+    }
+    .sub{ color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+    .chip{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-size: 12px;
+      white-space:nowrap;
+    }
+    main{
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panel-head{
+      padding: 14px 14px 12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+    }
+    .panel-head h2{
+      margin:0;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 850;
+      color: rgba(234,240,255,.88);
+    }
+    .panel-head p{ margin:6px 0 0; color: var(--muted); font-size: 12.5px; }
+    .panel-body{ padding: 14px; }
+
+    .btn{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.92);
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-size: 13px;
+      cursor:pointer;
+      transition: transform .14s ease, background .14s ease, border-color .14s ease;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+    .btn:active{ transform: translateY(0) scale(.98); }
+    .btn:focus-visible{ outline:none; box-shadow: 0 0 0 4px rgba(124,58,237,.22); border-color: rgba(124,58,237,.6); }
+    .btn-primary{
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(124,58,237,.45));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn-danger{
+      background: linear-gradient(135deg, rgba(239,68,68,.92), rgba(239,68,68,.35));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none !important; }
+
+    .form{
+      display:grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: var(--r-lg);
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.12);
+      margin-bottom: 12px;
+    }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px){ .row{ grid-template-columns: 1fr; } }
+
+    label{ display:block; font-size: 12px; color: rgba(234,240,255,.78); margin: 0 0 6px; }
+    input, select, textarea{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.92);
+      outline:none;
+      font-size: 13px;
+    }
+    textarea{ min-height: 84px; resize: vertical; }
+    input::placeholder, textarea::placeholder{ color: rgba(234,240,255,.45); }
+
+    .toolbar{ display:flex; gap: 8px; flex-wrap:wrap; justify-content:flex-end; }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      border-radius: var(--r-lg);
+      overflow:hidden;
+    }
+    thead th{
+      text-align:left;
+      padding: 10px 10px;
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,.70);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+    tbody td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      vertical-align: top;
+      font-size: 13px;
+    }
+    tbody tr:hover td{ background: rgba(124,58,237,.10); }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(234,240,255,.86);
+      white-space: nowrap;
+    }
+    .status-aberto{ background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.22); }
+    .status-aprovado{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.22); }
+    .status-recusado{ background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.22); }
+
+    .muted{ color: var(--muted); }
+    .total{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      align-items:center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      margin-top: 8px;
+    }
+    .total strong{
+      font-family: var(--display);
+      letter-spacing:-.02em;
+      font-size: 18px;
+    }
+
+    .notice{
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.35;
+      border: 1px dashed rgba(255,255,255,.18);
+      border-radius: var(--r-lg);
+      padding: 12px;
+      background: rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="top">
+    <div>
+      <h1>Orçamentos (Simplificado)</h1>
+      <div class="sub">Clientes + Orçamentos com total automático. Salva no navegador (localStorage).</div>
+    </div>
+    <div class="chip" id="info">Pronto</div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- CLIENTES -->
+    <section class="panel" aria-label="Clientes">
+      <div class="panel-head">
+        <div>
+          <h2>Clientes</h2>
+          <p>Adicionar e remover.</p>
+        </div>
+        <button class="btn btn-primary" id="btnNovoCliente" type="button">Novo</button>
+      </div>
+
+      <div class="panel-body">
+        <form class="form" id="formCliente" style="display:none">
+          <div class="row">
+            <div>
+              <label for="cliNome">Nome *</label>
+              <input id="cliNome" placeholder="Ex.: João Silva" required />
+            </div>
+            <div>
+              <label for="cliTelefone">Telefone *</label>
+              <input id="cliTelefone" placeholder="(11) 99999-9999" required />
+            </div>
+          </div>
+          <div class="toolbar" style="justify-content:space-between">
+            <button class="btn" id="btnCancelarCliente" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+          <div class="notice">Dica: telefone pode ser só números também.</div>
+        </form>
+
+        <div class="muted" id="clientesCount" style="margin: 6px 2px 10px;">0 clientes</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th style="width:120px; text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="clientesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ORÇAMENTOS -->
+    <section class="panel" aria-label="Orçamentos">
+      <div class="panel-head">
+        <div>
+          <h2>Orçamentos</h2>
+          <p>Criar orçamento para um cliente.</p>
+        </div>
+        <button class="btn btn-primary" id="btnNovoOrc" type="button">Novo</button>
+      </div>
+
+      <div class="panel-body">
+        <form class="form" id="formOrc" style="display:none">
+          <div class="row">
+            <div>
+              <label for="orcCliente">Cliente *</label>
+              <select id="orcCliente" required></select>
+            </div>
+            <div>
+              <label for="orcStatus">Status</label>
+              <select id="orcStatus">
+                <option value="aberto">Aberto</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="recusado">Recusado</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="orcDesc">Descrição *</label>
+            <textarea id="orcDesc" placeholder="Detalhe o serviço" required></textarea>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="orcMao">Mão de obra (R$)</label>
+              <input id="orcMao" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div>
+              <label for="orcMat">Materiais (R$)</label>
+              <input id="orcMat" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="orcDescR">Desconto (R$)</label>
+              <input id="orcDescR" type="number" min="0" step="0.01" value="0" />
+            </div>
+            <div class="total" aria-live="polite">
+              <span class="muted">Total</span>
+              <strong id="orcTotal">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="toolbar" style="justify-content:space-between">
+            <button class="btn" id="btnCancelarOrc" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+
+        <div class="muted" id="orcCount" style="margin: 6px 2px 10px;">0 orçamentos</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th style="width:120px; text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="orcBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  // ===== Simplificado e robusto (sem crypto.randomUUID obrigatório) =====
+  const K1 = "simp_clientes_v1";
+  const K2 = "simp_orcamentos_v1";
+
+  const $ = (id) => document.getElementById(id);
+
+  let clientes = [];
+  let orcs = [];
+
+  const el = {
+    info: $("info"),
+    // clientes
+    btnNovoCliente: $("btnNovoCliente"),
+    formCliente: $("formCliente"),
+    cliNome: $("cliNome"),
+    cliTelefone: $("cliTelefone"),
+    btnCancelarCliente: $("btnCancelarCliente"),
+    clientesBody: $("clientesBody"),
+    clientesCount: $("clientesCount"),
+    // orc
+    btnNovoOrc: $("btnNovoOrc"),
+    formOrc: $("formOrc"),
+    orcCliente: $("orcCliente"),
+    orcStatus: $("orcStatus"),
+    orcDesc: $("orcDesc"),
+    orcMao: $("orcMao"),
+    orcMat: $("orcMat"),
+    orcDescR: $("orcDescR"),
+    orcTotal: $("orcTotal"),
+    btnCancelarOrc: $("btnCancelarOrc"),
+    orcBody: $("orcBody"),
+    orcCount: $("orcCount"),
+  };
+
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  }
+
+  function moeda(v){
+    const n = Number(v || 0);
+    return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  }
+
+  function n2(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function load(){
+    try{
+      clientes = JSON.parse(localStorage.getItem(K1) || "[]");
+      orcs = JSON.parse(localStorage.getItem(K2) || "[]");
+    }catch(e){
+      clientes = [];
+      orcs = [];
+      console.error(e);
+    }
+  }
+
+  function save(){
+    localStorage.setItem(K1, JSON.stringify(clientes));
+    localStorage.setItem(K2, JSON.stringify(orcs));
+    el.info.textContent = "Salvo: " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+  }
+
+  function renderClientes(){
+    el.clientesCount.textContent = `${clientes.length} cliente(s)`;
+
+    el.clientesBody.innerHTML = clientes.map(c => `
+      <tr data-id="${c.id}">
+        <td><strong>${escapeHtml(c.nome)}</strong></td>
+        <td>${escapeHtml(c.telefone)}</td>
+        <td style="text-align:right;">
+          <button class="btn btn-danger" data-action="del" type="button">Excluir</button>
+        </td>
+      </tr>
+    `).join("");
+
+    renderClientesSelect();
+  }
+
+  function renderClientesSelect(){
+    const opts = clientes.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+    el.orcCliente.innerHTML = `<option value="">Selecione…</option>` + opts;
+  }
+
+  function calcTotal(){
+    const total = n2(el.orcMao.value) + n2(el.orcMat.value) - n2(el.orcDescR.value);
+    return Math.max(0, total);
+  }
+
+  function renderTotal(){
+    el.orcTotal.textContent = moeda(calcTotal());
+  }
+
+  function statusPill(s){
+    const cls = s === "aprovado" ? "status-aprovado" : (s === "recusado" ? "status-recusado" : "status-aberto");
+    return `<span class="pill ${cls}">${escapeHtml(s)}</span>`;
+  }
+
+  function renderOrcs(){
+    el.orcCount.textContent = `${orcs.length} orçamento(s)`;
+
+    el.orcBody.innerHTML = orcs.map(o => {
+      const c = clientes.find(x => x.id === o.clienteId);
+      const nome = c ? c.nome : "(cliente removido)";
+      return `
+        <tr data-id="${o.id}">
+          <td>${escapeHtml(nome)}</td>
+          <td><span class="pill"><strong>${moeda(o.total)}</strong></span></td>
+          <td>${statusPill(o.status)}</td>
+          <td style="text-align:right;">
+            <button class="btn btn-danger" data-action="del" type="button">Excluir</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // ===== Events =====
+  el.btnNovoCliente.addEventListener("click", () => {
+    el.formCliente.style.display = "grid";
+    el.cliNome.focus();
+  });
+
+  el.btnCancelarCliente.addEventListener("click", () => {
+    el.formCliente.style.display = "none";
+    el.formCliente.reset();
+  });
+
+  el.formCliente.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nome = (el.cliNome.value || "").trim();
+    const tel = (el.cliTelefone.value || "").trim();
+    if(!nome || !tel){
+      alert("Preencha nome e telefone.");
+      return;
+    }
+    clientes.push({ id: uid(), nome, telefone: tel });
+    save();
+    renderClientes();
+
+    el.formCliente.reset();
+    el.formCliente.style.display = "none";
+  });
+
+  el.clientesBody.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if(!btn) return;
+    const tr = e.target.closest("tr[data-id]");
+    if(!tr) return;
+    const id = tr.dataset.id;
+
+    if(btn.dataset.action === "del"){
+      const c = clientes.find(x => x.id === id);
+      const count = orcs.filter(o => o.clienteId === id).length;
+      const ok = confirm(`Excluir cliente "${c?.nome || ""}"? Isso remove ${count} orçamento(s) também.`);
+      if(!ok) return;
+
+      clientes = clientes.filter(x => x.id !== id);
+      orcs = orcs.filter(o => o.clienteId !== id);
+      save();
+      renderClientes();
+      renderOrcs();
+    }
+  });
+
+  el.btnNovoOrc.addEventListener("click", () => {
+    if(clientes.length === 0){
+      alert("Cadastre um cliente antes.");
+      return;
+    }
+    el.formOrc.style.display = "grid";
+    renderClientesSelect();
+    el.orcDescR.value = "0";
+    renderTotal();
+    el.orcDesc.focus();
+  });
+
+  el.btnCancelarOrc.addEventListener("click", () => {
+    el.formOrc.style.display = "none";
+    el.formOrc.reset();
+    renderTotal();
+  });
+
+  ["input","change"].forEach(evt => {
+    el.orcMao.addEventListener(evt, renderTotal);
+    el.orcMat.addEventListener(evt, renderTotal);
+    el.orcDescR.addEventListener(evt, renderTotal);
+  });
+
+  el.formOrc.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const clienteId = el.orcCliente.value;
+    const status = el.orcStatus.value;
+    const desc = (el.orcDesc.value || "").trim();
+    if(!clienteId || desc.length < 5){
+      alert("Selecione o cliente e preencha a descrição (mín. 5 caracteres).");
+      return;
+    }
+    const total = calcTotal();
+    orcs.push({
+      id: uid(),
+      clienteId,
+      status,
+      desc,
+      maoObra: n2(el.orcMao.value),
+      materiais: n2(el.orcMat.value),
+      desconto: n2(el.orcDescR.value),
+      total
+    });
+
+    save();
+    renderOrcs();
+
+    el.formOrc.reset();
+    el.formOrc.style.display = "none";
+    renderTotal();
+  });
+
+  el.orcBody.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if(!btn) return;
+    const tr = e.target.closest("tr[data-id]");
+    if(!tr) return;
+    const id = tr.dataset.id;
+
+    if(btn.dataset.action === "del"){
+      if(!confirm("Excluir este orçamento?")) return;
+      orcs = orcs.filter(x => x.id !== id);
+      save();
+      renderOrcs();
+    }
+  });
+
+  // ===== Init =====
+  load();
+  renderClientes();
+  renderOrcs();
+  renderTotal();
+</script>
+</body>
+</html>

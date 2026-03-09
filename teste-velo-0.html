@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clone Fast - Medidor de Velocidade de Internet</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: #222;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #speedValue {
+      font-size: 5rem;
+      font-weight: 900;
+      color: white;
+      margin: 0;
+      text-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    }
+    #unit {
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+      margin-top: -20px;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #startBtn {
+      margin-top: 30px;
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 30px;
+      background: white;
+      color: #4facfe;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    #startBtn:hover {
+      background: #00f2fe;
+      color: white;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 1rem;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      min-height: 1.2em;
+    }
+    #progressBarContainer {
+      width: 100%;
+      max-width: 400px;
+      height: 15px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 10px;
+      margin-top: 25px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.5);
+    }
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: white;
+      border-radius: 10px;
+      transition: width 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <h1>Clone Fast - Medidor de Velocidade</h1>
+  <p id="speedValue">0.00</p>
+  <p id="unit">Mbps</p>
+  <button id="startBtn">Iniciar Teste</button>
+  <div id="status"></div>
+  <div id="progressBarContainer" aria-label="Progresso do teste">
+    <div id="progressBar"></div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const speedValue = document.getElementById('speedValue');
+    const unit = document.getElementById('unit');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+
+    // Arquivo para download para teste (arquivo grande para medir velocidade)
+    const TEST_FILE_URL = 'https://speed.hetzner.de/100MB.bin'; // 100MB arquivo para teste
+    const TEST_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB em bytes
+
+    function formatSpeed(bitsPerSecond) {
+      const kbps = bitsPerSecond / 1024;
+      const mbps = kbps / 1024;
+      if (mbps >= 1) return mbps.toFixed(2);
+      if (kbps >= 1) return kbps.toFixed(2);
+      return bitsPerSecond.toFixed(2);
+    }
+
+    async function testDownloadSpeed() {
+      status.textContent = 'Iniciando teste...';
+      speedValue.textContent = '0.00';
+      progressBar.style.width = '0%';
+
+      try {
+        const startTime = performance.now();
+        const response = await fetch(TEST_FILE_URL, { cache: 'no-store' });
+        if (!response.body) {
+          status.textContent = 'Seu navegador não suporta leitura de streams.';
+          return;
+        }
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+        let lastUpdate = startTime;
+        let speedBps = 0;
+
+        while(true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          receivedLength += value.length;
+
+          const now = performance.now();
+          if (now - lastUpdate > 200) { // Atualiza a cada 200ms
+            const durationSeconds = (now - startTime) / 1000;
+            speedBps = (receivedLength * 8) / durationSeconds;
+            speedValue.textContent = formatSpeed(speedBps);
+            progressBar.style.width = Math.min((receivedLength / TEST_FILE_SIZE_BYTES) * 100, 100) + '%';
+            lastUpdate = now;
+          }
+        }
+
+        const endTime = performance.now();
+        const totalDurationSeconds = (endTime - startTime) / 1000;
+        speedBps = (receivedLength * 8) / totalDurationSeconds;
+
+        speedValue.textContent = formatSpeed(speedBps);
+        status.textContent = `Teste concluído em ${totalDurationSeconds.toFixed(2)} segundos.`;
+        progressBar.style.width = '100%';
+      } catch (error) {
+        status.textContent = 'Erro ao realizar o teste: ' + error.message;
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      testDownloadSpeed();
+    });
+  </script>
+</body>
+</html>
