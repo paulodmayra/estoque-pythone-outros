@@ -19,10 +19,11 @@ import argparse
 import csv
 import datetime as dt
 import os
+import re
 import sqlite3
 import sys
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Optional, Iterable, Any
 
 
@@ -43,9 +44,33 @@ def now_iso() -> str:
 
 
 def parse_decimal(s: str) -> Decimal:
-    # aceita "10,50" e "10.50"
-    s = s.strip().replace(".", "").replace(",", ".") if "," in s else s.strip()
-    return Decimal(s)
+    """
+    Aceita formatos brasileiros e internacionais:
+      "10,50"   -> 10.50   (vírgula decimal)
+      "1.500,00"-> 1500.00 (ponto milhar + vírgula decimal)
+      "1.500"   -> 1500    (ponto milhar, 3 dígitos após = milhar)
+      "1.50"    -> 1.50    (ponto decimal, != 3 dígitos após = decimal)
+      "1500"    -> 1500    (inteiro)
+    """
+    s = s.strip()
+    if not s:
+        raise ValueError("Valor vazio.")
+
+    if "," in s:
+        # vírgula presente: ponto é milhar, vírgula é decimal
+        s = s.replace(".", "").replace(",", ".")
+    elif "." in s:
+        # só ponto: verificar se parece milhar (ex: 1.500)
+        parts = s.split(".")
+        if len(parts) == 2 and len(parts[1]) == 3 and parts[1].isdigit():
+            # heurística: exatamente 3 dígitos após ponto = milhar
+            s = s.replace(".", "")
+        # senão mantém como decimal (ex: 1.50, 15.5)
+
+    try:
+        return Decimal(s)
+    except InvalidOperation:
+        raise ValueError(f"Valor numérico inválido: '{s}'")
 
 
 def today_iso_date() -> str:
@@ -282,7 +307,9 @@ def listar_produtos(db: DB, incluir_inativos: bool = False) -> None:
         where = "" if incluir_inativos else "WHERE p.ativo = 1"
         rows = con.execute(
             f"""
-            SELECT p.sku, p.nome, c.nome as categoria, p.unidade, p.estoque_minimo, p.preco_venda, p.custo_medio, p.ativo
+            SELECT p.sku, p.nome, c.nome as categoria, p.unidade,
+                   p.estoque_minimo, p.preco_venda, p.custo_medio, p.ativo,
+                   COALESCE((SELECT SUM(m.quantidade) FROM movimentos m WHERE m.produto_id = p.id), 0) AS saldo
             FROM produtos p
             LEFT JOIN categorias c ON c.id = p.categoria_id
             {where}
@@ -292,17 +319,25 @@ def listar_produtos(db: DB, incluir_inativos: bool = False) -> None:
 
         print("SKU | Nome | Categoria | UN | Min | Preço | Custo Médio | Ativo | Saldo")
         for r in rows:
-            prod = con.execute("SELECT id FROM produtos WHERE sku = ?", (r["sku"],)).fetchone()
-            saldo = estoque_atual(con, int(prod["id"]))
             print(
                 f'{r["sku"]} | {r["nome"]} | {r["categoria"] or "-"} | {r["unidade"]} | {r["estoque_minimo"]} | '
-                f'{r["preco_venda"]} | {r["custo_medio"]} | {r["ativo"]} | {saldo}'
+                f'{r["preco_venda"]} | {r["custo_medio"]} | {r["ativo"]} | {r["saldo"]}'
             )
 
 
-def inativar_produto(db: DB, sku: str) -> None:
+def inativar_produto(db: DB, sku: str, force: bool = False) -> None:
     with db.connect() as con:
         p = get_produto_by_sku(con, sku.strip().upper())
+        saldo = estoque_atual(con, int(p["id"]))
+
+        if not force:
+            resp = input(
+                f'Inativar "{p["nome"]}" (SKU={p["sku"]}, saldo={saldo})? [s/N]: '
+            ).strip().lower()
+            if resp not in ("s", "sim"):
+                print("Operação cancelada.")
+                return
+
         con.execute("UPDATE produtos SET ativo = 0, atualizado_em = ? WHERE id = ?", (now_iso(), p["id"]))
         log(con, "INATIVA_PRODUTO", sku)
         print(f"OK: Produto inativado: {sku}")
@@ -578,7 +613,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     compra = sp.add_parser("compra", help="Registra compra (entrada)")
     compra.add_argument("--fornecedor")
-    compra.add_argument("--data", default=today_iso_date())
+    compra.add_argument("--data", default=None, help="YYYY-MM-DD (padrão: hoje)")
     compra.add_argument("--sku", required=True)
     compra.add_argument("--qtd", required=True)
     compra.add_argument("--custo", required=True)
@@ -586,7 +621,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     venda = sp.add_parser("venda", help="Registra venda (saída)")
     venda.add_argument("--cliente")
-    venda.add_argument("--data", default=today_iso_date())
+    venda.add_argument("--data", default=None, help="YYYY-MM-DD (padrão: hoje)")
     venda.add_argument("--sku", required=True)
     venda.add_argument("--qtd", required=True)
     venda.add_argument("--preco")  # opcional
@@ -616,11 +651,32 @@ def main(argv: Optional[list[str]] = None) -> None:
     if argv is None and len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)
-    
+
     args = parser.parse_args(argv)
 
     db = DB(args.db)
 
+    try:
+        _dispatch(db, args)
+    except sqlite3.IntegrityError as e:
+        msg = str(e)
+        if "UNIQUE" in msg.upper():
+            print(f"ERRO: Registro duplicado — {msg}", file=sys.stderr)
+        else:
+            print(f"ERRO de integridade: {msg}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as e:
+        print(f"ERRO: {e}", file=sys.stderr)
+        sys.exit(1)
+    except sqlite3.OperationalError as e:
+        print(f"ERRO no banco de dados: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nOperação cancelada.")
+        sys.exit(130)
+
+
+def _dispatch(db: DB, args: argparse.Namespace) -> None:
     if args.cmd == "init":
         init_db(db)
         print("OK: Banco pronto.")
@@ -650,10 +706,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         return
 
     if args.cmd == "compra":
+        data = args.data or today_iso_date()
         registrar_compra(
             db=db,
             fornecedor=args.fornecedor,
-            data=args.data,
+            data=data,
             sku=args.sku,
             quantidade=parse_decimal(args.qtd),
             custo_unitario=parse_decimal(args.custo),
@@ -662,11 +719,12 @@ def main(argv: Optional[list[str]] = None) -> None:
         return
 
     if args.cmd == "venda":
+        data = args.data or today_iso_date()
         pu = parse_decimal(args.preco) if args.preco is not None else None
         registrar_venda(
             db=db,
             cliente=args.cliente,
-            data=args.data,
+            data=data,
             sku=args.sku,
             quantidade=parse_decimal(args.qtd),
             preco_unitario=pu,
